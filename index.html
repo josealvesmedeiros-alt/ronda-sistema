@@ -3,57 +3,371 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RONDA PRO V20.0</title>
+    <title id="tab-title">ELITE PRO V20.0 - High Tech Security</title>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
-        :root { --primary: #00f2fe; --bg: #000c17; --card: #001529; --text: #e6f7ff; --danger: #ff4d4f; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
-        body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
-        #login-screen { position: fixed; inset: 0; background: #000c17; display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .login-box { background: var(--card); padding: 30px; border-radius: 15px; border: 1px solid var(--primary); text-align: center; width: 90%; max-width: 350px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #144466; background: #000; color: #fff; }
-        .btn { background: var(--primary); color: #000; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-        nav { display: none; background: var(--card); padding: 15px; justify-content: space-around; border-top: 1px solid #144466; position: fixed; bottom: 0; width: 100%; }
-        main { display: none; padding: 20px; flex: 1; }
-        .card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #144466; }
+        :root {
+            --primary: #00f2fe; --bg: #000c17; --card: #001529; --text: #e6f7ff;
+            --danger: #ff4d4f; --warning: #faad14; --success: #52c41a; --hover: #144466;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; flex-direction: row; height: 100vh; width: 100vw; overflow: hidden; }
+
+        /* LOGIN SCREEN */
+        #login-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #002140, #000814); z-index: 9999; padding: 20px; background-size: cover; background-position: center; }
+        .login-box { background: rgba(0, 21, 41, 0.85); backdrop-filter: blur(10px); padding: 30px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; border: 1px solid var(--primary); box-shadow: 0 0 20px rgba(0,242,254,0.2); }
+        #dynamic-logo { max-width: 180px; max-height: 120px; margin-bottom: 20px; display: none; margin-inline: auto; }
+        .pass-container { position: relative; width: 100%; }
+        .login-box input { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid #144466; color: #fff; border-radius: 8px; outline: none; font-size: 16px; }
+        .toggle-pass { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--primary); cursor: pointer; font-size: 1.2rem; z-index: 10; }
+
+        /* NAV - DEFAULT (VERTICAL) */
+        nav { width: 280px; background: var(--card); display: none; flex-direction: column; padding: 20px 15px; gap: 12px; border-right: 1px solid #144466; z-index: 100; overflow-y: auto; }
+        nav h2 { font-size: 1.1rem; color: var(--primary); text-align: center; margin-bottom: 20px; border-bottom: 1px solid #144466; padding-bottom: 10px; }
+        
+        main { flex: 1; display: none; flex-direction: column; overflow-y: auto; position: relative; }
+        header { padding: 15px 20px; background: #001529; border-bottom: 1px solid #144466; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+        
+        .viewport { padding: 15px; max-width: 1200px; margin: 0 auto; width: 100%; }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #144466; position: relative; }
+
+        /* BOTÕES NAVEGAÇÃO */
+        .btn-nav { background: transparent; border: 1px solid #144466; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; color: var(--text); width: 100%; display: flex; align-items: center; transition: 0.3s; font-size: 14px; margin-bottom: 5px; justify-content: flex-start; text-decoration: none; }
+        .btn-nav i { margin-right: 12px; font-size: 1.2rem; width: 25px; text-align: center; }
+        .btn-nav.active-btn { background: linear-gradient(90deg, #00f2fe, #4facfe); color: #001529; border-color: var(--primary); box-shadow: 0 0 10px rgba(0,242,254,0.3); }
+
+        .btn { background: linear-gradient(90deg, #00f2fe, #4facfe); border: none; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; color: #001529; width: 100%; display: flex; align-items: center; transition: 0.2s; font-size: 14px; margin-bottom: 5px; justify-content: center; position: relative; text-decoration: none; }
+        .btn-panic { background: linear-gradient(90deg, #ff4d4f, #cf1322); color: white; margin-top: 15px; }
+
+        .input-dark { width: 100%; padding: 14px; background: #000; border: 1px solid #144466; color: #fff; border-radius: 8px; margin-top: 8px; font-size: 16px; outline: none; }
+        
+        .mural-badge { position: absolute; top: 10px; right: 10px; width: 12px; height: 12px; background: var(--danger); border-radius: 50%; border: 2px solid var(--card); display: none; }
+        #mural-alert-ronda { background: var(--warning); color: #000; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-weight: bold; display: none; align-items: center; gap: 10px; animation: pulse 1.5s infinite; cursor: pointer; }
+
+        .ronda-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 10px; margin-bottom: 10px; border-left: 5px solid var(--danger); }
+        .ronda-item.concluido { border-left-color: var(--success); }
+        .ronda-item.proximo { border-left-color: var(--warning); }
+        .status-light { width: 12px; height: 12px; border-radius: 50%; background: var(--danger); }
+        .concluido .status-light { background: var(--success); }
+
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.3s ease; }
+        
+        #map { height: 250px; width: 100%; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--primary); }
+        #chart-container { height: 250px; margin: 20px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+        #photo-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin: 10px 0; display:none; border: 1px solid var(--primary); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        
+        .telemetry-header { font-size: 0.7rem; color: #888; display: flex; gap: 12px; }
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+
+        /* MOBILE OVERRIDES */
+        @media (max-width: 850px) {
+            body { flex-direction: column; }
+            nav { position: fixed; bottom: 0; left: 0; width: 100%; height: auto; flex-direction: row !important; overflow-x: auto; padding: 10px; border-right: none; border-top: 1px solid #144466; gap: 8px; background: var(--card); justify-content: flex-start; display: none; }
+            nav h2 { display: none; }
+            nav .btn-nav { width: auto; min-width: 65px; padding: 12px; flex-direction: column; justify-content: center; border: none; }
+            nav .btn-nav span { display: none; } 
+            #admin-menu-block { display: flex !important; flex-direction: row !important; margin-top: 0 !important; border-top: none !important; padding-top: 0 !important; gap: 8px; }
+            main { height: calc(100vh - 75px); }
+            .viewport { padding-bottom: 90px; }
+        }
+        
+        .admin-only { display: none; }
     </style>
 </head>
-<body>
+<body onload="initSystem()">
 
 <div id="login-screen">
     <div class="login-box">
-        <h2>SISTEMA RONDA</h2>
-        <input id="user" placeholder="Usuário (admin)">
-        <input id="pass" type="password" placeholder="Senha (admin)">
-        <button class="btn" onclick="entrar()">ENTRAR</button>
+        <i id="default-icon" class="fas fa-shield-halved" style="font-size: 3.5rem; color: var(--primary); margin-bottom: 20px;"></i>
+        <img id="dynamic-logo" src="" alt="Logo">
+        <h2 id="login-system-name">ELITE PRO V20.0</h2>
+        <input id="login-user" placeholder="Usuário" autocomplete="off">
+        <div class="pass-container">
+            <input id="login-pass" type="password" placeholder="Senha">
+            <i class="fas fa-eye toggle-pass" onclick="togglePassView('login-pass', this)"></i>
+        </div>
+        <button class="btn" onclick="handleLogin()">ENTRAR NO SISTEMA</button>
     </div>
 </div>
 
-<main id="conteudo">
-    <div class="card">
-        <h3>Painel de Ronda</h3>
-        <p>Status: Ativo</p>
-        <button class="btn" onclick="alert('Câmera Ativada')">LER QR CODE</button>
+<nav id="side-nav">
+    <h2 id="nav-title">CONTROLE</h2>
+    <button class="btn-nav" id="btn-ronda-page" onclick="navigate('ronda-page')"><i class="fas fa-walking"></i> <span>RONDA</span></button>
+    <button class="btn-nav" id="btn-ocorrencias-page" onclick="navigate('ocorrencias-page')"><i class="fas fa-exclamation-triangle"></i> <span>OCORRÊNCIAS</span></button>
+    
+    <div id="admin-menu-block" class="admin-only" style="margin-top: 15px; border-top: 1px solid #144466; padding-top: 15px;">
+        <button class="btn-nav admin-only" id="btn-mural-page" onclick="navigate('mural-page')">
+            <i class="fas fa-chalkboard"></i> <span>MURAL</span>
+            <div id="mural-nav-badge" class="mural-badge"></div>
+        </button>
+        <button class="btn-nav admin-only" id="btn-admin-reports" onclick="navigate('admin-reports')"><i class="fas fa-file-invoice"></i> <span>RELATÓRIO</span></button>
+        <button class="btn-nav admin-only" id="btn-gestao-pontos" onclick="navigate('gestao-pontos')"><i class="fas fa-map-marker-alt"></i> <span>PONTOS</span></button>
+        <button class="btn-nav admin-only" id="btn-gestao-users" onclick="navigate('gestao-users')"><i class="fas fa-users-cog"></i> <span>EQUIPE</span></button>
+        <button class="btn-nav admin-only" id="btn-config-branding" onclick="navigate('config-branding')"><i class="fas fa-paint-brush"></i> <span>VISUAL</span></button>
+    </div>
+
+    <button class="btn-nav" style="border:none; color:#666; margin-top:auto" onclick="location.reload()"><i class="fas fa-sign-out-alt"></i> <span>SAIR</span></button>
+</nav>
+
+<main id="main-content">
+    <header>
+        <div>
+            <h3 id="page-title">MÓDULO DE RONDA</h3>
+            <div class="telemetry-header">
+                <span><i class="fas fa-location-arrow"></i> <span id="tele-gps">--</span></span>
+                <span id="tele-battery"><i class="fas fa-battery-half"></i> --%</span>
+                <span id="link-status"><i class="fas fa-circle" id="net-icon" style="color:var(--success)"></i> <span id="net-text">ONLINE</span></span>
+            </div>
+        </div>
+        <div id="user-tag" style="color: var(--primary); font-weight: bold; font-size: 0.8rem;"></div>
+    </header>
+
+    <div class="viewport">
+        <section id="ronda-page" class="page active">
+            <div id="mural-alert-ronda" onclick="navigate('mural-page')"><i class="fas fa-bullhorn"></i> <span id="mural-msg-preview"></span></div>
+            <div class="card">
+                <h3>Checklist de Ronda</h3>
+                <div id="scanner-view" style="display:none; border: 2px solid var(--primary); border-radius:10px; overflow:hidden; margin-bottom:15px; background:#000;"><video id="preview" style="width:100%;"></video></div>
+                <button class="btn" onclick="toggleScanner()"><i class="fas fa-qrcode"></i> ABRIR SCANNER</button>
+                <div id="checklist-status" style="margin-top:20px;"></div>
+                <button class="btn btn-panic" onclick="triggerPanic()"><i class="fas fa-radiation"></i> <span>ACIONAR PÂNICO</span></button>
+            </div>
+        </section>
+
+        <section id="ocorrencias-page" class="page">
+            <div class="card">
+                <h3>Relato de Incidente</h3>
+                <textarea id="oc-desc" class="input-dark" style="height:120px" placeholder="Descreva os detalhes..."></textarea>
+                <input type="file" id="photo-input" accept="image/*" capture="environment" hidden onchange="previewPhoto(this)">
+                <img id="photo-preview">
+                <div class="btn-row">
+                    <button class="btn" style="background:#444; color:white;" onclick="document.getElementById('photo-input').click()"><i class="fas fa-camera"></i> FOTO</button>
+                    <button class="btn" style="background:var(--danger); color:white;" onclick="salvarOcorrencia()"><i class="fas fa-paper-plane"></i> ENVIAR</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="mural-page" class="page">
+            <div class="card admin-only">
+                <h3>Novo Comunicado</h3>
+                <textarea id="mural-txt" class="input-dark" style="height:100px" placeholder="Escreva aqui..."></textarea>
+                <button class="btn" style="margin-top:10px" onclick="salvarNoMural()">PUBLICAR</button>
+            </div>
+            <div id="lista-mural"></div>
+        </section>
+
+        <section id="admin-reports" class="page">
+            <div id="map"></div>
+            <div class="card">
+                <h3>Configurar PDF de Auditoria</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="pdf-empresa" class="input-dark" placeholder="Nome da Empresa">
+                    <input type="text" id="pdf-gestor" class="input-dark" placeholder="Responsável/Gestor">
+                    <input type="text" id="pdf-cidade" class="input-dark" placeholder="Cidade">
+                    <input type="text" id="pdf-estado" class="input-dark" placeholder="Estado (UF)">
+                </div>
+                <div id="chart-container"><canvas id="prodChart"></canvas></div>
+                <button class="btn" style="background:var(--success); color:white; margin-top:15px;" onclick="exportarPDF()">
+                    <i class="fas fa-file-pdf"></i> GERAR PDF COM DADOS
+                </button>
+            </div>
+            <div class="card" style="overflow-x:auto">
+                <table style="width:100%; border-collapse:collapse; font-size:0.7rem;">
+                    <thead><tr style="color:var(--primary); background:rgba(0,0,0,0.4);"><th>HORA</th><th>AGENTE</th><th>EVENTO</th><th>INFO</th></tr></thead>
+                    <tbody id="lista-master"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="gestao-pontos" class="page">
+            <div class="card">
+                <h3>Cadastrar Ponto</h3>
+                <input id="novo-ponto-nome" class="input-dark" placeholder="Nome do Ponto">
+                <button class="btn" style="margin-top:10px" onclick="addPonto()">SALVAR PONTO</button>
+            </div>
+            <div id="lista-pontos-config"></div>
+        </section>
+
+        <section id="gestao-users" class="page">
+            <div class="card">
+                <h3>Novo Usuário</h3>
+                <input id="nu" placeholder="Usuário" class="input-dark">
+                <input id="np" placeholder="Senha" type="password" class="input-dark">
+                <select id="n-role" class="input-dark">
+                    <option value="user">VIGILANTE</option>
+                    <option value="admin">ADMINISTRADOR</option>
+                </select>
+                <button class="btn" onclick="addUser()" style="margin-top:10px">CADASTRAR</button>
+            </div>
+            <div id="lista-users-delete"></div>
+        </section>
+
+        <section id="config-branding" class="page">
+            <div class="card">
+                <h3>Backup e Visual</h3>
+                <div class="btn-row">
+                    <button class="btn" style="background:var(--success); color:white;" onclick="downloadBackup()">BACKUP</button>
+                    <button class="btn" style="background:var(--warning); color:black;" onclick="document.getElementById('imp-file').click()">RESTAURAR</button>
+                    <input type="file" id="imp-file" hidden accept=".json" onchange="importBackup(this)">
+                </div>
+                <div class="btn-row" style="margin-top:10px">
+                    <button class="btn" style="background:#333;" onclick="document.getElementById('up-logo').click()">LOGO</button>
+                    <button class="btn" style="background:#333;" onclick="document.getElementById('up-bg').click()">FUNDO</button>
+                    <input type="file" id="up-logo" hidden onchange="updateSystemLogo(this)">
+                    <input type="file" id="up-bg" hidden onchange="updateSystemBG(this)">
+                </div>
+            </div>
+        </section>
     </div>
 </main>
 
-<nav id="menu">
-    <i class="fas fa-home"></i>
-    <i class="fas fa-camera"></i>
-    <i class="fas fa-sign-out-alt" onclick="location.reload()"></i>
-</nav>
-
 <script>
-    function entrar() {
-        const u = document.getElementById('user').value;
-        const p = document.getElementById('pass').value;
-        if(u === 'admin' && p === 'admin') {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('conteudo').style.display = 'block';
-            document.getElementById('menu').style.display = 'flex';
-        } else { alert("Dados incorretos!"); }
+const MASTER_USER = "MESTRE";
+const MASTER_PASS = "SUPERVISOR2026";
+
+const DB = {
+    get: (k) => JSON.parse(localStorage.getItem(k) || '[]'),
+    set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+    log: (tipo, info, foto = null) => {
+        let logs = DB.get('sys_master_logs');
+        logs.unshift({ u: currentUser.u, tipo, info, hora: new Date().toLocaleTimeString(), data: new Date().toLocaleDateString(), gps: globalGPS.str, foto });
+        DB.set('sys_master_logs', logs.slice(0, 500));
     }
+};
+
+let scanner = null, currentUser = null, map = null, myChart = null, globalGPS = {lat:0, lon:0, str:"0,0"}, currentPhoto = null;
+
+function initSystem() {
+    if(DB.get('sys_users').length === 0) {
+        DB.set('sys_users', [{u: 'admin', p: 'admin', role: 'admin'}]);
+        DB.set('sys_roteiro', [{id: 1, nome: 'PORTARIA', status: 'red'}]);
+    }
+    const bg = localStorage.getItem('sys_bg'), logo = localStorage.getItem('sys_logo');
+    if(bg) document.getElementById('login-screen').style.backgroundImage = `url(${bg})`;
+    if(logo) applyLogo(logo);
+    
+    if(navigator.geolocation) {
+        navigator.geolocation.watchPosition(p => {
+            globalGPS.lat = p.coords.latitude; globalGPS.lon = p.coords.longitude;
+            globalGPS.str = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;
+            document.getElementById('tele-gps').innerText = globalGPS.str;
+        });
+    }
+    renderChecklist();
+    checkMural();
+}
+
+function handleLogin() {
+    const u = document.getElementById('login-user').value.trim();
+    const p = document.getElementById('login-pass').value.trim();
+    if(u.toUpperCase() === MASTER_USER && p === MASTER_PASS) { currentUser = { u: 'MESTRE', role: 'admin' }; enterSystem(); return; }
+    const user = DB.get('sys_users').find(x => x.u.toLowerCase() === u.toLowerCase() && x.p === p);
+    if(user) { currentUser = user; enterSystem(); }
+    else alert("Acesso Negado");
+}
+
+function enterSystem() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('side-nav').style.display = 'flex';
+    document.getElementById('main-content').style.display = 'flex';
+    document.getElementById('user-tag').innerText = `USER: ${currentUser.u.toUpperCase()}`;
+    const isAdmin = (currentUser.role === 'admin');
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'block' : 'none');
+    navigate('ronda-page');
+}
+
+function navigate(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active-btn'));
+    if(document.getElementById('btn-'+id)) document.getElementById('btn-'+id).classList.add('active-btn');
+    if(id === 'admin-reports') { setTimeout(()=>{ initChart(); initMap(); updateMasterLog(); }, 200); }
+    if(id === 'gestao-pontos') renderPontosAdmin();
+    if(id === 'gestao-users') renderUserList();
+    if(id === 'mural-page') renderMural();
+}
+
+function toggleScanner() {
+    const v = document.getElementById('scanner-view');
+    if(scanner) { scanner.stop(); scanner = null; v.style.display = 'none'; return; }
+    v.style.display = 'block';
+    scanner = new Instascan.Scanner({ video: document.getElementById('preview'), mirror: false });
+    scanner.addListener('scan', c => { validarPonto(c.toUpperCase()); toggleScanner(); });
+    Instascan.Camera.getCameras().then(cams => { if(cams.length > 0) scanner.start(cams[cams.length-1] || cams[0]); });
+}
+
+function validarPonto(cod) {
+    let r = DB.get('sys_roteiro');
+    const idx = r.findIndex(p => p.nome === cod && p.status === 'red');
+    if(idx !== -1) { r[idx].status = 'green'; DB.set('sys_roteiro', r); DB.log('RONDA OK', cod); renderChecklist(); }
+    else alert("Ponto incorreto ou já realizado!");
+}
+
+function renderChecklist() { document.getElementById('checklist-status').innerHTML = DB.get('sys_roteiro').map(p => `<div class="ronda-item ${p.status==='green'?'concluido':''}"><span>${p.nome}</span><div class="status-light"></div></div>`).join(''); }
+
+function initChart() {
+    const logs = DB.get('sys_master_logs');
+    const ctx = document.getElementById('prodChart').getContext('2d');
+    if(myChart) myChart.destroy();
+    myChart = new Chart(ctx, { type: 'bar', data: { labels: ['RONDAS', 'OCORRÊNCIAS'], datasets: [{ data: [logs.filter(x=>x.tipo==='RONDA OK').length, logs.filter(x=>x.tipo==='OCORRÊNCIA').length], backgroundColor: ['#00f2fe', '#ff4d4f'] }] }, options: { maintainAspectRatio: false } });
+}
+
+async function exportarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Captura dos novos campos
+    const empresa = document.getElementById('pdf-empresa').value || 'ELITE PRO SECURITY';
+    const gestor = document.getElementById('pdf-gestor').value || 'Não Informado';
+    const local = `${document.getElementById('pdf-cidade').value || 'Cidade'} - ${document.getElementById('pdf-estado').value || 'UF'}`;
+
+    doc.setFontSize(18); doc.text(empresa, 10, 20);
+    doc.setFontSize(12); doc.text(`Gestor Responsável: ${gestor}`, 10, 30);
+    doc.text(`Local: ${local}`, 10, 37);
+    doc.text(`Data do Relatório: ${new Date().toLocaleDateString()}`, 10, 44);
+    
+    doc.autoTable({
+        startY: 55,
+        head: [['DATA', 'HORA', 'AGENTE', 'EVENTO', 'INFO']],
+        body: DB.get('sys_master_logs').map(l => [l.data || '', l.hora, l.u, l.tipo, l.info]),
+        headStyles: { fillColor: [0, 21, 41] }
+    });
+    
+    doc.save(`Relatorio_${empresa.replace(/\s/g, '_')}.pdf`);
+}
+
+function initMap() { if(map) map.remove(); map = L.map('map').setView([globalGPS.lat, globalGPS.lon], 15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); L.marker([globalGPS.lat, globalGPS.lon]).addTo(map); }
+function togglePassView(id, icon) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; icon.classList.toggle('fa-eye-slash'); }
+function triggerPanic() { if(confirm("PÂNICO?")) { DB.log('PÂNICO SOS', 'EMERGÊNCIA'); alert("ENVIADO!"); } }
+function updateMasterLog() { document.getElementById('lista-master').innerHTML = DB.get('sys_master_logs').map(l => `<tr><td>${l.hora}</td><td>${l.u}</td><td>${l.tipo}</td><td>${l.info}</td></tr>`).join(''); }
+function applyLogo(src) { const img = document.getElementById('dynamic-logo'); img.src = src; img.style.display = 'block'; document.getElementById('login-system-name').style.display='none'; document.getElementById('default-icon').style.display='none'; }
+function updateSystemLogo(i) { const fr = new FileReader(); fr.onload = e => { localStorage.setItem('sys_logo', e.target.result); applyLogo(e.target.result); }; fr.readAsDataURL(i.files[0]); }
+function updateSystemBG(i) { const fr = new FileReader(); fr.onload = e => { localStorage.setItem('sys_bg', e.target.result); document.getElementById('login-screen').style.backgroundImage = `url(${e.target.result})`; }; fr.readAsDataURL(i.files[0]); }
+function previewPhoto(i) { const fr = new FileReader(); fr.onload = e => { currentPhoto = e.target.result; document.getElementById('photo-preview').src = e.target.result; document.getElementById('photo-preview').style.display = 'block'; }; fr.readAsDataURL(i.files[0]); }
+function salvarOcorrencia() { const d = document.getElementById('oc-desc').value; if(d){ DB.log('OCORRÊNCIA', d, currentPhoto); alert("Relato enviado!"); navigate('ronda-page'); } }
+function addUser() { const u=document.getElementById('nu').value, p=document.getElementById('np').value, r=document.getElementById('n-role').value; if(u&&p){ let us=DB.get('sys_users'); us.push({u,p,role:r}); DB.set('sys_users', us); renderUserList(); } }
+function renderUserList() { document.getElementById('lista-users-delete').innerHTML = DB.get('sys_users').map((u,i) => `<div class="card" style="display:flex; justify-content:space-between"><span>${u.u}</span><button onclick="delUser(${i})" style="color:red; background:none; border:none">X</button></div>`).join(''); }
+function delUser(i) { let us=DB.get('sys_users'); us.splice(i,1); DB.set('sys_users', us); renderUserList(); }
+function addPonto() { const n=document.getElementById('novo-ponto-nome').value.toUpperCase(); if(n){ let r=DB.get('sys_roteiro'); r.push({id:Date.now(), nome:n, status:'red'}); DB.set('sys_roteiro', r); renderPontosAdmin(); renderChecklist(); } }
+function renderPontosAdmin() { document.getElementById('lista-pontos-config').innerHTML = DB.get('sys_roteiro').map((p,i) => `<div class="card" style="display:flex; justify-content:space-between"><span>${p.nome}</span><button onclick="delPonto(${i})" style="color:red; background:none; border:none">X</button></div>`).join(''); }
+function delPonto(i) { let r=DB.get('sys_roteiro'); r.splice(i,1); DB.set('sys_roteiro', r); renderPontosAdmin(); renderChecklist(); }
+function salvarNoMural() { const t=document.getElementById('mural-txt').value; if(t){ let m=DB.get('sys_mural'); m.unshift({u:currentUser.u, txt:t, data:new Date().toLocaleString()}); DB.set('sys_mural', m); renderMural(); checkMural(); } }
+function renderMural() { document.getElementById('lista-mural').innerHTML = DB.get('sys_mural').map(x => `<div class="card"><b>${x.u}</b> <small>${x.data}</small><br>${x.txt}</div>`).join(''); }
+function checkMural() { const m=DB.get('sys_mural'); if(m.length>0) { document.getElementById('mural-alert-ronda').style.display='flex'; document.getElementById('mural-msg-preview').innerText=m[0].txt; document.getElementById('mural-nav-badge').style.display='block'; } }
+function downloadBackup() { const data = {}; for (let i=0; i<localStorage.length; i++) data[localStorage.key(i)] = localStorage.getItem(localStorage.key(i)); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'application/json'})); a.download = 'backup.json'; a.click(); }
+function importBackup(i) { const reader = new FileReader(); reader.onload = e => { const d = JSON.parse(e.target.result); localStorage.clear(); for(let k in d) localStorage.setItem(k, d[k]); location.reload(); }; reader.readAsText(i.files[0]); }
 </script>
 </body>
 </html>
