@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RONDA PRO V20.0</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+    <style>
+        :root { --primary: #00f2fe; --bg: #000c17; --card: #001529; --text: #e6f7ff; --danger: #ff4d4f; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+        #login-screen { position: fixed; inset: 0; background: #000c17; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .login-box { background: var(--card); padding: 30px; border-radius: 15px; border: 1px solid var(--primary); text-align: center; width: 90%; max-width: 350px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #144466; background: #000; color: #fff; }
+        .btn { background: var(--primary); color: #000; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        nav { display: none; background: var(--card); padding: 15px; justify-content: space-around; border-top: 1px solid #144466; position: fixed; bottom: 0; width: 100%; }
+        main { display: none; padding: 20px; flex: 1; }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #144466; }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-box">
+        <h2>SISTEMA RONDA</h2>
+        <input id="user" placeholder="Usuário (admin)">
+        <input id="pass" type="password" placeholder="Senha (admin)">
+        <button class="btn" onclick="entrar()">ENTRAR</button>
+    </div>
+</div>
+
+<main id="conteudo">
+    <div class="card">
+        <h3>Painel de Ronda</h3>
+        <p>Status: Ativo</p>
+        <button class="btn" onclick="alert('Câmera Ativada')">LER QR CODE</button>
+    </div>
+</main>
+
+<nav id="menu">
+    <i class="fas fa-home"></i>
+    <i class="fas fa-camera"></i>
+    <i class="fas fa-sign-out-alt" onclick="location.reload()"></i>
+</nav>
+
+<script>
+    function entrar() {
+        const u = document.getElementById('user').value;
+        const p = document.getElementById('pass').value;
+        if(u === 'admin' && p === 'admin') {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('conteudo').style.display = 'block';
+            document.getElementById('menu').style.display = 'flex';
+        } else { alert("Dados incorretos!"); }
+    }
+</script>
+</body>
+</html>
