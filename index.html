@@ -301,11 +301,38 @@ function navigate(id) {
 
 function toggleScanner() {
     const v = document.getElementById('scanner-view');
-    if(scanner) { scanner.stop(); scanner = null; v.style.display = 'none'; return; }
+    if (scanner) { 
+        scanner.stop(); 
+        scanner = null; 
+        v.style.display = 'none'; 
+        return; 
+    }
+
     v.style.display = 'block';
-    scanner = new Instascan.Scanner({ video: document.getElementById('preview'), mirror: false });
-    scanner.addListener('scan', c => { validarPonto(c.toUpperCase()); toggleScanner(); });
-    Instascan.Camera.getCameras().then(cams => { if(cams.length > 0) scanner.start(cams[cams.length-1] || cams[0]); });
+
+    // Configuração para forçar o hardware da câmera diretamente
+    scanner = new Instascan.Scanner({ 
+        video: document.getElementById('preview'), 
+        mirror: false,
+        scanPeriod: 5 
+    });
+
+    scanner.addListener('scan', c => { 
+        validarPonto(c.toUpperCase()); 
+        toggleScanner(); 
+    });
+
+    Instascan.Camera.getCameras().then(cams => {
+        if (cams.length > 0) {
+            // No celular, a câmera traseira geralmente é a última da lista
+            const backCam = cams[cams.length - 1];
+            scanner.start(backCam);
+        } else {
+            alert("Câmera não encontrada. Verifique as permissões.");
+        }
+    }).catch(e => {
+        alert("Erro na câmera: Use HTTPS e autorize o acesso.");
+    });
 }
 
 function validarPonto(cod) {
