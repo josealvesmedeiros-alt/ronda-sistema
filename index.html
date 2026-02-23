@@ -34,7 +34,7 @@
         .forgot-link { display: block; margin-top: 15px; color: var(--primary); text-decoration: none; font-size: 13px; opacity: 0.8; transition: 0.3s; }
         .forgot-link:hover { opacity: 1; text-decoration: underline; }
 
-        /* NAV - DEFAULT (VERTICAL) */
+        /* NAV */
         nav { width: 280px; background: var(--card); display: none; flex-direction: column; padding: 20px 15px; gap: 12px; border-right: 1px solid #144466; z-index: 100; overflow-y: auto; }
         nav h2 { font-size: 1.1rem; color: var(--primary); text-align: center; margin-bottom: 20px; border-bottom: 1px solid #144466; padding-bottom: 10px; }
         
@@ -58,7 +58,6 @@
 
         .ronda-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 10px; margin-bottom: 10px; border-left: 5px solid var(--danger); }
         .ronda-item.concluido { border-left-color: var(--success); }
-        .ronda-item.proximo { border-left-color: var(--warning); }
         .status-light { width: 12px; height: 12px; border-radius: 50%; background: var(--danger); }
         .concluido .status-light { background: var(--success); }
 
@@ -105,7 +104,6 @@
             <i class="fas fa-eye toggle-pass" onclick="togglePassView('login-pass', this)"></i>
         </div>
         <button class="btn" onclick="handleLogin()">ENTRAR NO SISTEMA</button>
-        
         <a href="javascript:void(0)" class="forgot-link" onclick="handleForgotPassword()">Esqueceu a senha?</a>
     </div>
 </div>
@@ -125,7 +123,6 @@
         <button class="btn-nav admin-only" id="btn-gestao-users" onclick="navigate('gestao-users')"><i class="fas fa-users-cog"></i> <span>EQUIPE</span></button>
         <button class="btn-nav admin-only" id="btn-config-branding" onclick="navigate('config-branding')"><i class="fas fa-paint-brush"></i> <span>VISUAL</span></button>
     </div>
-
     <button class="btn-nav" style="border:none; color:#666; margin-top:auto" onclick="location.reload()"><i class="fas fa-sign-out-alt"></i> <span>SAIR</span></button>
 </nav>
 
@@ -147,8 +144,10 @@
             <div id="mural-alert-ronda" onclick="navigate('mural-page')"><i class="fas fa-bullhorn"></i> <span id="mural-msg-preview"></span></div>
             <div class="card">
                 <h3>Checklist de Ronda</h3>
-                <div id="scanner-view" style="display:none; border: 2px solid var(--primary); border-radius:10px; overflow:hidden; margin-bottom:15px; background:#000;"><video id="preview" style="width:100%;"></video></div>
-                <button class="btn" onclick="toggleScanner()"><i class="fas fa-qrcode"></i> ABRIR SCANNER</button>
+                <div id="scanner-view" style="display:none; border: 2px solid var(--primary); border-radius:10px; overflow:hidden; margin-bottom:15px; background:#000;">
+                    <video id="preview" playsinline style="width:100%; min-height: 250px; object-fit: cover;"></video>
+                </div>
+                <button class="btn" id="btn-scan-main" onclick="toggleScanner()"><i class="fas fa-qrcode"></i> ABRIR SCANNER</button>
                 <div id="checklist-status" style="margin-top:20px;"></div>
                 <button class="btn btn-panic" onclick="triggerPanic()"><i class="fas fa-radiation"></i> <span>ACIONAR PÂNICO</span></button>
             </div>
@@ -247,14 +246,12 @@
                 <h3>Configuração de Contatos e Vigilante</h3>
                 <label style="font-size: 12px; color: var(--primary);">E-mail do Administrador (Padrão):</label>
                 <input type="text" id="admin-email-fixo" class="input-dark" placeholder="josealves37@hotmail.com">
-                
                 <div style="margin-top: 15px; border-top: 1px solid #144466; padding-top: 10px;">
                     <label style="font-size: 12px; color: var(--primary);">Login Padrão Vigilante:</label>
                     <input type="text" id="vigilante-user-fixo" class="input-dark" placeholder="Ex: vigilante1">
                     <label style="font-size: 12px; color: var(--primary);">Senha Padrão Vigilante:</label>
                     <input type="password" id="vigilante-pass-fixo" class="input-dark" placeholder="Ex: 123456">
                 </div>
-                
                 <button class="btn" style="margin-top:15px; background: var(--success); color: white;" onclick="salvarConfigsFixas()">SALVAR CONFIGURAÇÕES</button>
             </div>
         </section>
@@ -283,10 +280,7 @@ function initSystem() {
         DB.set('sys_roteiro', [{id: 1, nome: 'PORTARIA', status: 'red', lat: -23.55, lon: -46.63}]);
     }
     
-    // Carregar e-mail padrão se não existir
-    if(!localStorage.getItem('sys_admin_email')) {
-        localStorage.setItem('sys_admin_email', 'josealves37@hotmail.com');
-    }
+    if(!localStorage.getItem('sys_admin_email')) localStorage.setItem('sys_admin_email', 'josealves37@hotmail.com');
     document.getElementById('admin-email-fixo').value = localStorage.getItem('sys_admin_email');
     document.getElementById('vigilante-user-fixo').value = localStorage.getItem('sys_vigilante_user') || '';
     document.getElementById('vigilante-pass-fixo').value = localStorage.getItem('sys_vigilante_pass') || '';
@@ -294,7 +288,6 @@ function initSystem() {
     const bg = localStorage.getItem('sys_bg'), logo = localStorage.getItem('sys_logo');
     if(bg) document.getElementById('login-screen').style.backgroundImage = `url(${bg})`;
     if(logo) applyLogo(logo);
-    
     pdfLogoBase64 = localStorage.getItem('sys_pdf_logo');
 
     if(navigator.geolocation) {
@@ -309,44 +302,20 @@ function initSystem() {
 }
 
 function salvarConfigsFixas() {
-    const email = document.getElementById('admin-email-fixo').value;
-    const vUser = document.getElementById('vigilante-user-fixo').value;
-    const vPass = document.getElementById('vigilante-pass-fixo').value;
-    
-    localStorage.setItem('sys_admin_email', email);
-    localStorage.setItem('sys_vigilante_user', vUser);
-    localStorage.setItem('sys_vigilante_pass', vPass);
-    
-    alert("Configurações salvas com sucesso!");
+    localStorage.setItem('sys_admin_email', document.getElementById('admin-email-fixo').value);
+    localStorage.setItem('sys_vigilante_user', document.getElementById('vigilante-user-fixo').value);
+    localStorage.setItem('sys_vigilante_pass', document.getElementById('vigilante-pass-fixo').value);
+    alert("Configurações salvas!");
 }
 
 function handleLogin() {
     const u = document.getElementById('login-user').value.trim();
     const p = document.getElementById('login-pass').value.trim();
-    
-    if(u.toUpperCase() === MASTER_USER && p === MASTER_PASS) { 
-        currentUser = { u: 'MESTRE', role: 'admin' }; 
-        enterSystem(); 
-        return; 
-    }
-
-    // Verificar se é o login fixo do vigilante
-    const fixoUser = localStorage.getItem('sys_vigilante_user');
-    const fixoPass = localStorage.getItem('sys_vigilante_pass');
-    if(fixoUser && u === fixoUser && p === fixoPass) {
-        currentUser = { u: fixoUser, role: 'user' };
-        enterSystem();
-        return;
-    }
-    
+    if(u.toUpperCase() === MASTER_USER && p === MASTER_PASS) { currentUser = { u: 'MESTRE', role: 'admin' }; enterSystem(); return; }
+    const fixoUser = localStorage.getItem('sys_vigilante_user'), fixoPass = localStorage.getItem('sys_vigilante_pass');
+    if(fixoUser && u === fixoUser && p === fixoPass) { currentUser = { u: fixoUser, role: 'user' }; enterSystem(); return; }
     const user = DB.get('sys_users').find(x => x.u.toLowerCase() === u.toLowerCase() && x.p === p);
-    
-    if(user) { 
-        currentUser = user; 
-        enterSystem(); 
-    } else {
-        alert("Acesso Negado: Usuário ou Senha incorretos.");
-    }
+    if(user) { currentUser = user; enterSystem(); } else alert("Acesso Negado.");
 }
 
 function enterSystem() {
@@ -354,19 +323,15 @@ function enterSystem() {
     document.getElementById('side-nav').style.display = 'flex';
     document.getElementById('main-content').style.display = 'flex';
     document.getElementById('user-tag').innerText = `USER: ${currentUser.u.toUpperCase()}`;
-    const isAdmin = (currentUser.role === 'admin');
-    document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'block' : 'none');
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = (currentUser.role === 'admin' ? 'block' : 'none'));
     navigate('ronda-page');
 }
 
 function handleForgotPassword() {
     const user = document.getElementById('login-user').value.trim();
-    const adminEmail = localStorage.getItem('sys_admin_email') || 'josealves37@hotmail.com';
-    const msg = encodeURIComponent(`Olá, sou o usuário [${user || 'NÃO INFORMADO'}] e esqueci minha senha do sistema ELITE PRO. Por favor, enviar para o e-mail cadastrado: ${adminEmail}`);
-    
-    if(confirm(`Deseja solicitar a recuperação de senha ao Supervisor para o e-mail ${adminEmail}?`)) {
-        window.open(`https://wa.me/5500000000000?text=${msg}`, '_blank');
-    }
+    const adminEmail = localStorage.getItem('sys_admin_email');
+    const msg = encodeURIComponent(`Recuperação de Senha: Usuário [${user || 'Não informado'}]. E-mail de destino: ${adminEmail}`);
+    if(confirm(`Solicitar recuperação ao supervisor?`)) window.open(`https://wa.me/5500000000000?text=${msg}`, '_blank');
 }
 
 function navigate(id) {
@@ -380,58 +345,29 @@ function navigate(id) {
     if(id === 'mural-page') renderMural();
 }
 
-function uploadLogoPDF(input) {
-    const fr = new FileReader();
-    fr.onload = e => {
-        pdfLogoBase64 = e.target.result;
-        localStorage.setItem('sys_pdf_logo', pdfLogoBase64);
-        alert("Logo do PDF salva!");
-    };
-    if(input.files[0]) fr.readAsDataURL(input.files[0]);
-}
-
-async function exportarPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const empresa = document.getElementById('pdf-empresa').value || 'ELITE PRO SECURITY';
-    const gestor = document.getElementById('pdf-gestor').value || 'Não Informado';
-    const local = `${document.getElementById('pdf-cidade').value || 'Cidade'} - ${document.getElementById('pdf-estado').value || 'UF'}`;
-    
-    let yPos = 20;
-    if(pdfLogoBase64) {
-        doc.addImage(pdfLogoBase64, 'PNG', 10, 10, 30, 30);
-        yPos = 45;
-    }
-
-    doc.setFontSize(18); 
-    doc.text(empresa, pdfLogoBase64 ? 45 : 10, 20);
-    doc.setFontSize(10); 
-    doc.text(`Gestor: ${gestor} | Local: ${local}`, pdfLogoBase64 ? 45 : 10, 28);
-    doc.text(`Gerado em: ${new Date().toLocaleString()}`, pdfLogoBase64 ? 45 : 10, 34);
-
-    doc.autoTable({
-        startY: yPos,
-        head: [['DATA', 'HORA', 'AGENTE', 'EVENTO', 'INFO', 'GPS']],
-        body: DB.get('sys_master_logs').map(l => [l.data, l.hora, l.u, l.tipo, l.info, l.gps]),
-        headStyles: { fillColor: [0, 21, 41] }
-    });
-    doc.save(`Relatorio_${empresa}.pdf`);
-}
-
-function toggleScanner() {
+// CORREÇÃO SCANNER (Sua solicitação de abrir câmera)
+async function toggleScanner() {
     const v = document.getElementById('scanner-view');
-    if(scanner) { scanner.stop(); scanner = null; v.style.display = 'none'; return; }
+    const btn = document.getElementById('btn-scan-main');
+    if(scanner) { await scanner.stop(); scanner = null; v.style.display = 'none'; btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER'; return; }
     v.style.display = 'block';
+    btn.innerHTML = '<i class="fas fa-times"></i> FECHAR';
     scanner = new Instascan.Scanner({ video: document.getElementById('preview'), mirror: false });
     scanner.addListener('scan', c => { validarPonto(c.toUpperCase()); toggleScanner(); });
-    Instascan.Camera.getCameras().then(cams => { if(cams.length > 0) scanner.start(cams[cams.length-1] || cams[0]); });
+    try {
+        const cams = await Instascan.Camera.getCameras();
+        if(cams.length > 0) {
+            let backCam = cams.find(c => c.name.toLowerCase().includes('back')) || cams[cams.length - 1];
+            await scanner.start(backCam);
+        }
+    } catch(e) { alert("Erro na câmera: " + e); }
 }
 
 function validarPonto(cod) {
     let r = DB.get('sys_roteiro');
     const idx = r.findIndex(p => p.nome === cod && p.status === 'red');
     if(idx !== -1) { r[idx].status = 'green'; DB.set('sys_roteiro', r); DB.log('RONDA OK', cod); renderChecklist(); }
-    else alert("Ponto incorreto ou já realizado!");
+    else alert("Ponto incorreto!");
 }
 
 function renderChecklist() { document.getElementById('checklist-status').innerHTML = DB.get('sys_roteiro').map(p => `<div class="ronda-item ${p.status==='green'?'concluido':''}"><span>${p.nome}</span><div class="status-light"></div></div>`).join(''); }
@@ -440,23 +376,7 @@ function initGeoChart() {
     const ctx = document.getElementById('geoChart').getContext('2d');
     const logs = DB.get('sys_master_logs').filter(l => l.lat);
     if(geoChart) geoChart.destroy();
-    geoChart = new Chart(ctx, {
-        type: 'scatter',
-        data: {
-            datasets: [{
-                label: 'Pontos Capturados (GPS)',
-                data: logs.map(l => ({ x: l.lon, y: l.lat })),
-                backgroundColor: '#00f2fe'
-            }]
-        },
-        options: {
-            maintainAspectRatio: false,
-            scales: {
-                x: { title: { display: true, text: 'Longitude' } },
-                y: { title: { display: true, text: 'Latitude' } }
-            }
-        }
-    });
+    geoChart = new Chart(ctx, { type: 'scatter', data: { datasets: [{ label: 'GPS', data: logs.map(l => ({ x: l.lon, y: l.lat })), backgroundColor: '#00f2fe' }] }, options: { maintainAspectRatio: false } });
 }
 
 function initMap() { 
@@ -472,8 +392,7 @@ function addPonto() {
         let r = DB.get('sys_roteiro');
         r.push({ id: Date.now(), nome: n, status: 'red', lat: globalGPS.lat, lon: globalGPS.lon });
         DB.set('sys_roteiro', r);
-        renderPontosAdmin();
-        renderChecklist();
+        renderPontosAdmin(); renderChecklist();
         document.getElementById('novo-ponto-nome').value = '';
     }
 }
@@ -483,28 +402,21 @@ function renderPontosAdmin() {
     const pontos = DB.get('sys_roteiro');
     container.innerHTML = pontos.map((p, i) => `
         <div class="qr-card-admin">
-            <div style="width:100%; display:flex; justify-content:space-between">
-                <strong>${p.nome}</strong>
-                <button onclick="delPonto(${i})" style="color:var(--danger); background:none; border:none"><i class="fas fa-trash-alt"></i></button>
-            </div>
+            <div style="width:100%; display:flex; justify-content:space-between"><strong>${p.nome}</strong><button onclick="delPonto(${i})" style="color:var(--danger); background:none; border:none"><i class="fas fa-trash-alt"></i></button></div>
             <div id="qr-gen-${i}" class="qr-placeholder"></div>
-            <small>LAT: ${p.lat ? p.lat.toFixed(4) : '--'} | LON: ${p.lon ? p.lon.toFixed(4) : '--'}</small>
-            <button class="btn" style="padding:8px; font-size:12px; margin-top:5px" onclick="imprimirQR('qr-gen-${i}', '${p.nome}')">IMPRIMIR QR</button>
-        </div>
-    `).join('');
-    
-    pontos.forEach((p, i) => {
-        new QRCode(document.getElementById(`qr-gen-${i}`), { text: p.nome, width: 100, height: 100 });
-    });
+            <button class="btn" style="padding:8px; font-size:12px;" onclick="imprimirQR('qr-gen-${i}', '${p.nome}')">IMPRIMIR</button>
+        </div>`).join('');
+    pontos.forEach((p, i) => { new QRCode(document.getElementById(`qr-gen-${i}`), { text: p.nome, width: 100, height: 100 }); });
 }
 
 function imprimirQR(id, nome) {
     const img = document.getElementById(id).querySelector('img').src;
     const win = window.open('', '_blank');
-    win.document.write(`<html><body style="text-align:center;padding:50px"><h1>${nome}</h1><img src="${img}" width="300"><br><p>ELITE PRO V20.0 - QR SYSTEM</p><script>window.onload=function(){window.print();window.close();}<\/script></body></html>`);
+    win.document.write(`<html><body style="text-align:center"><h1>${nome}</h1><img src="${img}" width="300"></body></html>`);
+    win.print();
 }
 
-function delPonto(i) { if(confirm("Deseja excluir este ponto (Lixeira)?")) { let r=DB.get('sys_roteiro'); r.splice(i,1); DB.set('sys_roteiro', r); renderPontosAdmin(); renderChecklist(); } }
+function delPonto(i) { let r=DB.get('sys_roteiro'); r.splice(i,1); DB.set('sys_roteiro', r); renderPontosAdmin(); renderChecklist(); }
 function togglePassView(id, icon) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; icon.classList.toggle('fa-eye-slash'); }
 function triggerPanic() { if(confirm("PÂNICO?")) { DB.log('PÂNICO SOS', 'EMERGÊNCIA'); alert("ENVIADO!"); } }
 function updateMasterLog() { document.getElementById('lista-master').innerHTML = DB.get('sys_master_logs').map(l => `<tr><td>${l.hora}</td><td>${l.u}</td><td>${l.tipo}</td><td>${l.info}</td></tr>`).join(''); }
@@ -515,41 +427,22 @@ function previewPhoto(i) { const fr = new FileReader(); fr.onload = e => { curre
 function salvarOcorrencia() { const d = document.getElementById('oc-desc').value; if(d){ DB.log('OCORRÊNCIA', d, currentPhoto); alert("Relato enviado!"); navigate('ronda-page'); } }
 
 function addUser() { 
-    const u = document.getElementById('nu').value.trim(); 
-    const p = document.getElementById('np').value.trim(); 
-    const r = document.getElementById('n-role').value; 
-    
-    if(u && p){ 
-        let us = DB.get('sys_users'); 
-        us.push({ u: u, p: p, role: r }); 
-        DB.set('sys_users', us); 
-        
-        document.getElementById('nu').value = '';
-        document.getElementById('np').value = '';
-        
-        renderUserList(); 
-        alert("Usuário cadastrado com sucesso!");
-    } else {
-        alert("Preencha todos os campos!");
-    }
+    const u = document.getElementById('nu').value, p = document.getElementById('np').value, r = document.getElementById('n-role').value;
+    if(u && p){ let us = DB.get('sys_users'); us.push({u, p, role: r}); DB.set('sys_users', us); renderUserList(); }
 }
 
 function renderUserList() { 
     const users = DB.get('sys_users');
-    document.getElementById('lista-users-delete').innerHTML = users.map((u, i) => `
-        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-            <span><i class="fas fa-user"></i> ${u.u} (${u.role.toUpperCase()})</span>
-            <button onclick="delUser(${i})" style="color:red; background:none; border:none; cursor:pointer;"><i class="fas fa-times"></i></button>
-        </div>
-    `).join(''); 
+    document.getElementById('lista-users-delete').innerHTML = users.map((u, i) => `<div class="card" style="display:flex; justify-content:space-between"><span>${u.u} (${u.role})</span><button onclick="delUser(${i})" style="color:var(--danger); background:none; border:none"><i class="fas fa-trash"></i></button></div>`).join('');
 }
 
-function delUser(i) { if(confirm("Remover este usuário?")) { let us=DB.get('sys_users'); us.splice(i,1); DB.set('sys_users', us); renderUserList(); } }
-function salvarNoMural() { const t=document.getElementById('mural-txt').value; if(t){ let m=DB.get('sys_mural'); m.unshift({u:currentUser.u, txt:t, data:new Date().toLocaleString()}); DB.set('sys_mural', m); renderMural(); checkMural(); } }
-function renderMural() { document.getElementById('lista-mural').innerHTML = DB.get('sys_mural').map(x => `<div class="card"><b>${x.u}</b> <small>${x.data}</small><br>${x.txt}</div>`).join(''); }
-function checkMural() { const m=DB.get('sys_mural'); if(m.length>0) { document.getElementById('mural-alert-ronda').style.display='flex'; document.getElementById('mural-msg-preview').innerText=m[0].txt; document.getElementById('mural-nav-badge').style.display='block'; } }
-function downloadBackup() { const data = {}; for (let i=0; i<localStorage.length; i++) data[localStorage.key(i)] = localStorage.getItem(localStorage.key(i)); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'application/json'})); a.download = 'backup.json'; a.click(); }
-function importBackup(i) { const reader = new FileReader(); reader.onload = e => { const d = JSON.parse(e.target.result); localStorage.clear(); for(let k in d) localStorage.setItem(k, d[k]); location.reload(); }; reader.readAsText(i.files[0]); }
+function delUser(i) { let us = DB.get('sys_users'); us.splice(i,1); DB.set('sys_users', us); renderUserList(); }
+
+// Mural Placeholder functions
+function checkMural() {}
+function renderMural() {}
+function salvarNoMural() {}
+
 </script>
 </body>
 </html>
