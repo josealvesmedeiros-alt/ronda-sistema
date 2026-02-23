@@ -12,6 +12,7 @@
     <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
         :root {
@@ -29,6 +30,10 @@
         .login-box input { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid #144466; color: #fff; border-radius: 8px; outline: none; font-size: 16px; }
         .toggle-pass { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--primary); cursor: pointer; font-size: 1.2rem; z-index: 10; }
 
+        /* NOVA CAMADA: Esqueceu a Senha */
+        .forgot-link { display: block; margin-top: 15px; color: var(--primary); text-decoration: none; font-size: 13px; opacity: 0.8; transition: 0.3s; }
+        .forgot-link:hover { opacity: 1; text-decoration: underline; }
+
         /* NAV - DEFAULT (VERTICAL) */
         nav { width: 280px; background: var(--card); display: none; flex-direction: column; padding: 20px 15px; gap: 12px; border-right: 1px solid #144466; z-index: 100; overflow-y: auto; }
         nav h2 { font-size: 1.1rem; color: var(--primary); text-align: center; margin-bottom: 20px; border-bottom: 1px solid #144466; padding-bottom: 10px; }
@@ -39,7 +44,6 @@
         .viewport { padding: 15px; max-width: 1200px; margin: 0 auto; width: 100%; }
         .card { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #144466; position: relative; }
 
-        /* BOTÕES NAVEGAÇÃO */
         .btn-nav { background: transparent; border: 1px solid #144466; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; color: var(--text); width: 100%; display: flex; align-items: center; transition: 0.3s; font-size: 14px; margin-bottom: 5px; justify-content: flex-start; text-decoration: none; }
         .btn-nav i { margin-right: 12px; font-size: 1.2rem; width: 25px; text-align: center; }
         .btn-nav.active-btn { background: linear-gradient(90deg, #00f2fe, #4facfe); color: #001529; border-color: var(--primary); box-shadow: 0 0 10px rgba(0,242,254,0.3); }
@@ -65,13 +69,15 @@
         #chart-container { height: 250px; margin: 20px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
         #photo-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin: 10px 0; display:none; border: 1px solid var(--primary); }
 
+        .qr-card-admin { background: #001a33; border: 1px solid #144466; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; flex-direction: column; align-items: center; }
+        .qr-placeholder { background: white; padding: 10px; border-radius: 5px; margin: 10px 0; }
+
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
         
         .telemetry-header { font-size: 0.7rem; color: #888; display: flex; gap: 12px; }
         .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
 
-        /* MOBILE OVERRIDES */
         @media (max-width: 850px) {
             body { flex-direction: column; }
             nav { position: fixed; bottom: 0; left: 0; width: 100%; height: auto; flex-direction: row !important; overflow-x: auto; padding: 10px; border-right: none; border-top: 1px solid #144466; gap: 8px; background: var(--card); justify-content: flex-start; display: none; }
@@ -99,6 +105,8 @@
             <i class="fas fa-eye toggle-pass" onclick="togglePassView('login-pass', this)"></i>
         </div>
         <button class="btn" onclick="handleLogin()">ENTRAR NO SISTEMA</button>
+        
+        <a href="javascript:void(0)" class="forgot-link" onclick="handleForgotPassword()">Esqueceu a senha?</a>
     </div>
 </div>
 
@@ -171,14 +179,19 @@
         <section id="admin-reports" class="page">
             <div id="map"></div>
             <div class="card">
+                <h3>Gráfico de Localização (Scatter GPS)</h3>
+                <div id="chart-container"><canvas id="geoChart"></canvas></div>
                 <h3>Configurar PDF de Auditoria</h3>
+                <div style="margin-bottom: 15px; padding: 10px; border: 1px dashed var(--primary); border-radius: 8px;">
+                    <label style="display: block; font-size: 0.8rem; margin-bottom: 8px; color: var(--primary);">Logo do Relatório:</label>
+                    <input type="file" id="pdf-logo-input" accept="image/*" onchange="uploadLogoPDF(this)" style="font-size: 0.7rem;">
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
                     <input type="text" id="pdf-empresa" class="input-dark" placeholder="Nome da Empresa">
                     <input type="text" id="pdf-gestor" class="input-dark" placeholder="Responsável/Gestor">
                     <input type="text" id="pdf-cidade" class="input-dark" placeholder="Cidade">
                     <input type="text" id="pdf-estado" class="input-dark" placeholder="Estado (UF)">
                 </div>
-                <div id="chart-container"><canvas id="prodChart"></canvas></div>
                 <button class="btn" style="background:var(--success); color:white; margin-top:15px;" onclick="exportarPDF()">
                     <i class="fas fa-file-pdf"></i> GERAR PDF COM DADOS
                 </button>
@@ -193,9 +206,9 @@
 
         <section id="gestao-pontos" class="page">
             <div class="card">
-                <h3>Cadastrar Ponto</h3>
+                <h3>Cadastrar Ponto (Com Geolocalização)</h3>
                 <input id="novo-ponto-nome" class="input-dark" placeholder="Nome do Ponto">
-                <button class="btn" style="margin-top:10px" onclick="addPonto()">SALVAR PONTO</button>
+                <button class="btn" style="margin-top:10px" onclick="addPonto()"><i class="fas fa-save"></i> SALVAR PONTO E GERAR QR</button>
             </div>
             <div id="lista-pontos-config"></div>
         </section>
@@ -229,6 +242,21 @@
                     <input type="file" id="up-bg" hidden onchange="updateSystemBG(this)">
                 </div>
             </div>
+
+            <div class="card">
+                <h3>Configuração de Contatos e Vigilante</h3>
+                <label style="font-size: 12px; color: var(--primary);">E-mail do Administrador (Padrão):</label>
+                <input type="text" id="admin-email-fixo" class="input-dark" placeholder="josealves37@hotmail.com">
+                
+                <div style="margin-top: 15px; border-top: 1px solid #144466; padding-top: 10px;">
+                    <label style="font-size: 12px; color: var(--primary);">Login Padrão Vigilante:</label>
+                    <input type="text" id="vigilante-user-fixo" class="input-dark" placeholder="Ex: vigilante1">
+                    <label style="font-size: 12px; color: var(--primary);">Senha Padrão Vigilante:</label>
+                    <input type="password" id="vigilante-pass-fixo" class="input-dark" placeholder="Ex: 123456">
+                </div>
+                
+                <button class="btn" style="margin-top:15px; background: var(--success); color: white;" onclick="salvarConfigsFixas()">SALVAR CONFIGURAÇÕES</button>
+            </div>
         </section>
     </div>
 </main>
@@ -242,22 +270,33 @@ const DB = {
     set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
     log: (tipo, info, foto = null) => {
         let logs = DB.get('sys_master_logs');
-        logs.unshift({ u: currentUser.u, tipo, info, hora: new Date().toLocaleTimeString(), data: new Date().toLocaleDateString(), gps: globalGPS.str, foto });
+        logs.unshift({ u: currentUser.u, tipo, info, hora: new Date().toLocaleTimeString(), data: new Date().toLocaleDateString(), gps: globalGPS.str, lat: globalGPS.lat, lon: globalGPS.lon, foto });
         DB.set('sys_master_logs', logs.slice(0, 500));
     }
 };
 
-let scanner = null, currentUser = null, map = null, myChart = null, globalGPS = {lat:0, lon:0, str:"0,0"}, currentPhoto = null;
+let scanner = null, currentUser = null, map = null, geoChart = null, globalGPS = {lat:0, lon:0, str:"0,0"}, currentPhoto = null, pdfLogoBase64 = null;
 
 function initSystem() {
     if(DB.get('sys_users').length === 0) {
         DB.set('sys_users', [{u: 'admin', p: 'admin', role: 'admin'}]);
-        DB.set('sys_roteiro', [{id: 1, nome: 'PORTARIA', status: 'red'}]);
+        DB.set('sys_roteiro', [{id: 1, nome: 'PORTARIA', status: 'red', lat: -23.55, lon: -46.63}]);
     }
+    
+    // Carregar e-mail padrão se não existir
+    if(!localStorage.getItem('sys_admin_email')) {
+        localStorage.setItem('sys_admin_email', 'josealves37@hotmail.com');
+    }
+    document.getElementById('admin-email-fixo').value = localStorage.getItem('sys_admin_email');
+    document.getElementById('vigilante-user-fixo').value = localStorage.getItem('sys_vigilante_user') || '';
+    document.getElementById('vigilante-pass-fixo').value = localStorage.getItem('sys_vigilante_pass') || '';
+
     const bg = localStorage.getItem('sys_bg'), logo = localStorage.getItem('sys_logo');
     if(bg) document.getElementById('login-screen').style.backgroundImage = `url(${bg})`;
     if(logo) applyLogo(logo);
     
+    pdfLogoBase64 = localStorage.getItem('sys_pdf_logo');
+
     if(navigator.geolocation) {
         navigator.geolocation.watchPosition(p => {
             globalGPS.lat = p.coords.latitude; globalGPS.lon = p.coords.longitude;
@@ -269,13 +308,45 @@ function initSystem() {
     checkMural();
 }
 
+function salvarConfigsFixas() {
+    const email = document.getElementById('admin-email-fixo').value;
+    const vUser = document.getElementById('vigilante-user-fixo').value;
+    const vPass = document.getElementById('vigilante-pass-fixo').value;
+    
+    localStorage.setItem('sys_admin_email', email);
+    localStorage.setItem('sys_vigilante_user', vUser);
+    localStorage.setItem('sys_vigilante_pass', vPass);
+    
+    alert("Configurações salvas com sucesso!");
+}
+
 function handleLogin() {
     const u = document.getElementById('login-user').value.trim();
     const p = document.getElementById('login-pass').value.trim();
-    if(u.toUpperCase() === MASTER_USER && p === MASTER_PASS) { currentUser = { u: 'MESTRE', role: 'admin' }; enterSystem(); return; }
+    
+    if(u.toUpperCase() === MASTER_USER && p === MASTER_PASS) { 
+        currentUser = { u: 'MESTRE', role: 'admin' }; 
+        enterSystem(); 
+        return; 
+    }
+
+    // Verificar se é o login fixo do vigilante
+    const fixoUser = localStorage.getItem('sys_vigilante_user');
+    const fixoPass = localStorage.getItem('sys_vigilante_pass');
+    if(fixoUser && u === fixoUser && p === fixoPass) {
+        currentUser = { u: fixoUser, role: 'user' };
+        enterSystem();
+        return;
+    }
+    
     const user = DB.get('sys_users').find(x => x.u.toLowerCase() === u.toLowerCase() && x.p === p);
-    if(user) { currentUser = user; enterSystem(); }
-    else alert("Acesso Negado");
+    
+    if(user) { 
+        currentUser = user; 
+        enterSystem(); 
+    } else {
+        alert("Acesso Negado: Usuário ou Senha incorretos.");
+    }
 }
 
 function enterSystem() {
@@ -288,51 +359,72 @@ function enterSystem() {
     navigate('ronda-page');
 }
 
+function handleForgotPassword() {
+    const user = document.getElementById('login-user').value.trim();
+    const adminEmail = localStorage.getItem('sys_admin_email') || 'josealves37@hotmail.com';
+    const msg = encodeURIComponent(`Olá, sou o usuário [${user || 'NÃO INFORMADO'}] e esqueci minha senha do sistema ELITE PRO. Por favor, enviar para o e-mail cadastrado: ${adminEmail}`);
+    
+    if(confirm(`Deseja solicitar a recuperação de senha ao Supervisor para o e-mail ${adminEmail}?`)) {
+        window.open(`https://wa.me/5500000000000?text=${msg}`, '_blank');
+    }
+}
+
 function navigate(id) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active-btn'));
     if(document.getElementById('btn-'+id)) document.getElementById('btn-'+id).classList.add('active-btn');
-    if(id === 'admin-reports') { setTimeout(()=>{ initChart(); initMap(); updateMasterLog(); }, 200); }
+    if(id === 'admin-reports') { setTimeout(()=>{ initGeoChart(); initMap(); updateMasterLog(); }, 200); }
     if(id === 'gestao-pontos') renderPontosAdmin();
     if(id === 'gestao-users') renderUserList();
     if(id === 'mural-page') renderMural();
 }
 
-function toggleScanner() {
-    const v = document.getElementById('scanner-view');
-    if (scanner) { 
-        scanner.stop(); 
-        scanner = null; 
-        v.style.display = 'none'; 
-        return; 
+function uploadLogoPDF(input) {
+    const fr = new FileReader();
+    fr.onload = e => {
+        pdfLogoBase64 = e.target.result;
+        localStorage.setItem('sys_pdf_logo', pdfLogoBase64);
+        alert("Logo do PDF salva!");
+    };
+    if(input.files[0]) fr.readAsDataURL(input.files[0]);
+}
+
+async function exportarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const empresa = document.getElementById('pdf-empresa').value || 'ELITE PRO SECURITY';
+    const gestor = document.getElementById('pdf-gestor').value || 'Não Informado';
+    const local = `${document.getElementById('pdf-cidade').value || 'Cidade'} - ${document.getElementById('pdf-estado').value || 'UF'}`;
+    
+    let yPos = 20;
+    if(pdfLogoBase64) {
+        doc.addImage(pdfLogoBase64, 'PNG', 10, 10, 30, 30);
+        yPos = 45;
     }
 
+    doc.setFontSize(18); 
+    doc.text(empresa, pdfLogoBase64 ? 45 : 10, 20);
+    doc.setFontSize(10); 
+    doc.text(`Gestor: ${gestor} | Local: ${local}`, pdfLogoBase64 ? 45 : 10, 28);
+    doc.text(`Gerado em: ${new Date().toLocaleString()}`, pdfLogoBase64 ? 45 : 10, 34);
+
+    doc.autoTable({
+        startY: yPos,
+        head: [['DATA', 'HORA', 'AGENTE', 'EVENTO', 'INFO', 'GPS']],
+        body: DB.get('sys_master_logs').map(l => [l.data, l.hora, l.u, l.tipo, l.info, l.gps]),
+        headStyles: { fillColor: [0, 21, 41] }
+    });
+    doc.save(`Relatorio_${empresa}.pdf`);
+}
+
+function toggleScanner() {
+    const v = document.getElementById('scanner-view');
+    if(scanner) { scanner.stop(); scanner = null; v.style.display = 'none'; return; }
     v.style.display = 'block';
-
-    // Configuração para forçar o hardware da câmera diretamente
-    scanner = new Instascan.Scanner({ 
-        video: document.getElementById('preview'), 
-        mirror: false,
-        scanPeriod: 5 
-    });
-
-    scanner.addListener('scan', c => { 
-        validarPonto(c.toUpperCase()); 
-        toggleScanner(); 
-    });
-
-    Instascan.Camera.getCameras().then(cams => {
-        if (cams.length > 0) {
-            // No celular, a câmera traseira geralmente é a última da lista
-            const backCam = cams[cams.length - 1];
-            scanner.start(backCam);
-        } else {
-            alert("Câmera não encontrada. Verifique as permissões.");
-        }
-    }).catch(e => {
-        alert("Erro na câmera: Use HTTPS e autorize o acesso.");
-    });
+    scanner = new Instascan.Scanner({ video: document.getElementById('preview'), mirror: false });
+    scanner.addListener('scan', c => { validarPonto(c.toUpperCase()); toggleScanner(); });
+    Instascan.Camera.getCameras().then(cams => { if(cams.length > 0) scanner.start(cams[cams.length-1] || cams[0]); });
 }
 
 function validarPonto(cod) {
@@ -344,38 +436,75 @@ function validarPonto(cod) {
 
 function renderChecklist() { document.getElementById('checklist-status').innerHTML = DB.get('sys_roteiro').map(p => `<div class="ronda-item ${p.status==='green'?'concluido':''}"><span>${p.nome}</span><div class="status-light"></div></div>`).join(''); }
 
-function initChart() {
-    const logs = DB.get('sys_master_logs');
-    const ctx = document.getElementById('prodChart').getContext('2d');
-    if(myChart) myChart.destroy();
-    myChart = new Chart(ctx, { type: 'bar', data: { labels: ['RONDAS', 'OCORRÊNCIAS'], datasets: [{ data: [logs.filter(x=>x.tipo==='RONDA OK').length, logs.filter(x=>x.tipo==='OCORRÊNCIA').length], backgroundColor: ['#00f2fe', '#ff4d4f'] }] }, options: { maintainAspectRatio: false } });
-}
-
-async function exportarPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // Captura dos novos campos
-    const empresa = document.getElementById('pdf-empresa').value || 'ELITE PRO SECURITY';
-    const gestor = document.getElementById('pdf-gestor').value || 'Não Informado';
-    const local = `${document.getElementById('pdf-cidade').value || 'Cidade'} - ${document.getElementById('pdf-estado').value || 'UF'}`;
-
-    doc.setFontSize(18); doc.text(empresa, 10, 20);
-    doc.setFontSize(12); doc.text(`Gestor Responsável: ${gestor}`, 10, 30);
-    doc.text(`Local: ${local}`, 10, 37);
-    doc.text(`Data do Relatório: ${new Date().toLocaleDateString()}`, 10, 44);
-    
-    doc.autoTable({
-        startY: 55,
-        head: [['DATA', 'HORA', 'AGENTE', 'EVENTO', 'INFO']],
-        body: DB.get('sys_master_logs').map(l => [l.data || '', l.hora, l.u, l.tipo, l.info]),
-        headStyles: { fillColor: [0, 21, 41] }
+function initGeoChart() {
+    const ctx = document.getElementById('geoChart').getContext('2d');
+    const logs = DB.get('sys_master_logs').filter(l => l.lat);
+    if(geoChart) geoChart.destroy();
+    geoChart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Pontos Capturados (GPS)',
+                data: logs.map(l => ({ x: l.lon, y: l.lat })),
+                backgroundColor: '#00f2fe'
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                x: { title: { display: true, text: 'Longitude' } },
+                y: { title: { display: true, text: 'Latitude' } }
+            }
+        }
     });
-    
-    doc.save(`Relatorio_${empresa.replace(/\s/g, '_')}.pdf`);
 }
 
-function initMap() { if(map) map.remove(); map = L.map('map').setView([globalGPS.lat, globalGPS.lon], 15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); L.marker([globalGPS.lat, globalGPS.lon]).addTo(map); }
+function initMap() { 
+    if(map) map.remove(); 
+    map = L.map('map').setView([globalGPS.lat, globalGPS.lon], 15); 
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); 
+    DB.get('sys_roteiro').forEach(p => { if(p.lat) L.marker([p.lat, p.lon]).addTo(map).bindPopup(p.nome); });
+}
+
+function addPonto() {
+    const n = document.getElementById('novo-ponto-nome').value.toUpperCase();
+    if(n){
+        let r = DB.get('sys_roteiro');
+        r.push({ id: Date.now(), nome: n, status: 'red', lat: globalGPS.lat, lon: globalGPS.lon });
+        DB.set('sys_roteiro', r);
+        renderPontosAdmin();
+        renderChecklist();
+        document.getElementById('novo-ponto-nome').value = '';
+    }
+}
+
+function renderPontosAdmin() {
+    const container = document.getElementById('lista-pontos-config');
+    const pontos = DB.get('sys_roteiro');
+    container.innerHTML = pontos.map((p, i) => `
+        <div class="qr-card-admin">
+            <div style="width:100%; display:flex; justify-content:space-between">
+                <strong>${p.nome}</strong>
+                <button onclick="delPonto(${i})" style="color:var(--danger); background:none; border:none"><i class="fas fa-trash-alt"></i></button>
+            </div>
+            <div id="qr-gen-${i}" class="qr-placeholder"></div>
+            <small>LAT: ${p.lat ? p.lat.toFixed(4) : '--'} | LON: ${p.lon ? p.lon.toFixed(4) : '--'}</small>
+            <button class="btn" style="padding:8px; font-size:12px; margin-top:5px" onclick="imprimirQR('qr-gen-${i}', '${p.nome}')">IMPRIMIR QR</button>
+        </div>
+    `).join('');
+    
+    pontos.forEach((p, i) => {
+        new QRCode(document.getElementById(`qr-gen-${i}`), { text: p.nome, width: 100, height: 100 });
+    });
+}
+
+function imprimirQR(id, nome) {
+    const img = document.getElementById(id).querySelector('img').src;
+    const win = window.open('', '_blank');
+    win.document.write(`<html><body style="text-align:center;padding:50px"><h1>${nome}</h1><img src="${img}" width="300"><br><p>ELITE PRO V20.0 - QR SYSTEM</p><script>window.onload=function(){window.print();window.close();}<\/script></body></html>`);
+}
+
+function delPonto(i) { if(confirm("Deseja excluir este ponto (Lixeira)?")) { let r=DB.get('sys_roteiro'); r.splice(i,1); DB.set('sys_roteiro', r); renderPontosAdmin(); renderChecklist(); } }
 function togglePassView(id, icon) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; icon.classList.toggle('fa-eye-slash'); }
 function triggerPanic() { if(confirm("PÂNICO?")) { DB.log('PÂNICO SOS', 'EMERGÊNCIA'); alert("ENVIADO!"); } }
 function updateMasterLog() { document.getElementById('lista-master').innerHTML = DB.get('sys_master_logs').map(l => `<tr><td>${l.hora}</td><td>${l.u}</td><td>${l.tipo}</td><td>${l.info}</td></tr>`).join(''); }
@@ -384,12 +513,38 @@ function updateSystemLogo(i) { const fr = new FileReader(); fr.onload = e => { l
 function updateSystemBG(i) { const fr = new FileReader(); fr.onload = e => { localStorage.setItem('sys_bg', e.target.result); document.getElementById('login-screen').style.backgroundImage = `url(${e.target.result})`; }; fr.readAsDataURL(i.files[0]); }
 function previewPhoto(i) { const fr = new FileReader(); fr.onload = e => { currentPhoto = e.target.result; document.getElementById('photo-preview').src = e.target.result; document.getElementById('photo-preview').style.display = 'block'; }; fr.readAsDataURL(i.files[0]); }
 function salvarOcorrencia() { const d = document.getElementById('oc-desc').value; if(d){ DB.log('OCORRÊNCIA', d, currentPhoto); alert("Relato enviado!"); navigate('ronda-page'); } }
-function addUser() { const u=document.getElementById('nu').value, p=document.getElementById('np').value, r=document.getElementById('n-role').value; if(u&&p){ let us=DB.get('sys_users'); us.push({u,p,role:r}); DB.set('sys_users', us); renderUserList(); } }
-function renderUserList() { document.getElementById('lista-users-delete').innerHTML = DB.get('sys_users').map((u,i) => `<div class="card" style="display:flex; justify-content:space-between"><span>${u.u}</span><button onclick="delUser(${i})" style="color:red; background:none; border:none">X</button></div>`).join(''); }
-function delUser(i) { let us=DB.get('sys_users'); us.splice(i,1); DB.set('sys_users', us); renderUserList(); }
-function addPonto() { const n=document.getElementById('novo-ponto-nome').value.toUpperCase(); if(n){ let r=DB.get('sys_roteiro'); r.push({id:Date.now(), nome:n, status:'red'}); DB.set('sys_roteiro', r); renderPontosAdmin(); renderChecklist(); } }
-function renderPontosAdmin() { document.getElementById('lista-pontos-config').innerHTML = DB.get('sys_roteiro').map((p,i) => `<div class="card" style="display:flex; justify-content:space-between"><span>${p.nome}</span><button onclick="delPonto(${i})" style="color:red; background:none; border:none">X</button></div>`).join(''); }
-function delPonto(i) { let r=DB.get('sys_roteiro'); r.splice(i,1); DB.set('sys_roteiro', r); renderPontosAdmin(); renderChecklist(); }
+
+function addUser() { 
+    const u = document.getElementById('nu').value.trim(); 
+    const p = document.getElementById('np').value.trim(); 
+    const r = document.getElementById('n-role').value; 
+    
+    if(u && p){ 
+        let us = DB.get('sys_users'); 
+        us.push({ u: u, p: p, role: r }); 
+        DB.set('sys_users', us); 
+        
+        document.getElementById('nu').value = '';
+        document.getElementById('np').value = '';
+        
+        renderUserList(); 
+        alert("Usuário cadastrado com sucesso!");
+    } else {
+        alert("Preencha todos os campos!");
+    }
+}
+
+function renderUserList() { 
+    const users = DB.get('sys_users');
+    document.getElementById('lista-users-delete').innerHTML = users.map((u, i) => `
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+            <span><i class="fas fa-user"></i> ${u.u} (${u.role.toUpperCase()})</span>
+            <button onclick="delUser(${i})" style="color:red; background:none; border:none; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+    `).join(''); 
+}
+
+function delUser(i) { if(confirm("Remover este usuário?")) { let us=DB.get('sys_users'); us.splice(i,1); DB.set('sys_users', us); renderUserList(); } }
 function salvarNoMural() { const t=document.getElementById('mural-txt').value; if(t){ let m=DB.get('sys_mural'); m.unshift({u:currentUser.u, txt:t, data:new Date().toLocaleString()}); DB.set('sys_mural', m); renderMural(); checkMural(); } }
 function renderMural() { document.getElementById('lista-mural').innerHTML = DB.get('sys_mural').map(x => `<div class="card"><b>${x.u}</b> <small>${x.data}</small><br>${x.txt}</div>`).join(''); }
 function checkMural() { const m=DB.get('sys_mural'); if(m.length>0) { document.getElementById('mural-alert-ronda').style.display='flex'; document.getElementById('mural-msg-preview').innerText=m[0].txt; document.getElementById('mural-nav-badge').style.display='block'; } }
