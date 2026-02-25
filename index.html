@@ -345,22 +345,48 @@ function navigate(id) {
     if(id === 'mural-page') renderMural();
 }
 
-// CORREÇÃO SCANNER (Sua solicitação de abrir câmera)
+// CORREÇÃO SCANNER PARA GARANTIR ABERTURA DA CÂMERA
 async function toggleScanner() {
     const v = document.getElementById('scanner-view');
     const btn = document.getElementById('btn-scan-main');
-    if(scanner) { await scanner.stop(); scanner = null; v.style.display = 'none'; btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER'; return; }
-    v.style.display = 'block';
-    btn.innerHTML = '<i class="fas fa-times"></i> FECHAR';
-    scanner = new Instascan.Scanner({ video: document.getElementById('preview'), mirror: false });
-    scanner.addListener('scan', c => { validarPonto(c.toUpperCase()); toggleScanner(); });
+    
+    if(scanner) { 
+        await scanner.stop(); 
+        scanner = null; 
+        v.style.display = 'none'; 
+        btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER'; 
+        return; 
+    }
+
+    // Tentar solicitar permissão explicitamente antes de iniciar o Instascan
     try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        stream.getTracks().forEach(track => track.stop()); // Fecha o teste de permissão
+        
+        v.style.display = 'block';
+        btn.innerHTML = '<i class="fas fa-times"></i> FECHAR';
+        
+        scanner = new Instascan.Scanner({ video: document.getElementById('preview'), mirror: false, backgroundScan: false });
+        
+        scanner.addListener('scan', c => { 
+            validarPonto(c.toUpperCase()); 
+            toggleScanner(); 
+        });
+
         const cams = await Instascan.Camera.getCameras();
         if(cams.length > 0) {
-            let backCam = cams.find(c => c.name.toLowerCase().includes('back')) || cams[cams.length - 1];
+            // Prioriza a câmera traseira ("back")
+            let backCam = cams.find(c => c.name.toLowerCase().includes('back')) || cams[0];
             await scanner.start(backCam);
+        } else {
+            alert("Nenhuma câmera encontrada.");
+            v.style.display = 'none';
         }
-    } catch(e) { alert("Erro na câmera: " + e); }
+    } catch(e) { 
+        alert("Erro ao acessar câmera: " + e.message + "\nVerifique se o site possui HTTPS e permissões de câmera.");
+        v.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER';
+    }
 }
 
 function validarPonto(cod) {
