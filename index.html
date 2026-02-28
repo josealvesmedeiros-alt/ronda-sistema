@@ -30,7 +30,6 @@
         .login-box input { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid #144466; color: #fff; border-radius: 8px; outline: none; font-size: 16px; }
         .toggle-pass { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--primary); cursor: pointer; font-size: 1.2rem; z-index: 10; }
 
-        /* NOVA CAMADA: Esqueceu a Senha */
         .forgot-link { display: block; margin-top: 15px; color: var(--primary); text-decoration: none; font-size: 13px; opacity: 0.8; transition: 0.3s; }
         .forgot-link:hover { opacity: 1; text-decoration: underline; }
 
@@ -54,7 +53,7 @@
         .input-dark { width: 100%; padding: 14px; background: #000; border: 1px solid #144466; color: #fff; border-radius: 8px; margin-top: 8px; font-size: 16px; outline: none; }
         
         .mural-badge { position: absolute; top: 10px; right: 10px; width: 12px; height: 12px; background: var(--danger); border-radius: 50%; border: 2px solid var(--card); display: none; }
-        #mural-alert-ronda { background: var(--warning); color: #000; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-weight: bold; display: none; align-items: center; gap: 10px; animation: pulse 1.5s infinite; cursor: pointer; }
+        #mural-alert-ronda { background: var(--warning); color: #000; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-weight: bold; display: none; align-items: center; gap: 10px; animation: pulse 1.5s infinite; cursor: default; }
 
         .ronda-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 10px; margin-bottom: 10px; border-left: 5px solid var(--danger); }
         .ronda-item.concluido { border-left-color: var(--success); }
@@ -141,7 +140,7 @@
 
     <div class="viewport">
         <section id="ronda-page" class="page active">
-            <div id="mural-alert-ronda" onclick="navigate('mural-page')"><i class="fas fa-bullhorn"></i> <span id="mural-msg-preview"></span></div>
+            <div id="mural-alert-ronda"><i class="fas fa-bullhorn"></i> <span id="mural-msg-preview"></span></div>
             <div class="card">
                 <h3>Checklist de Ronda</h3>
                 <div id="scanner-view" style="display:none; border: 2px solid var(--primary); border-radius:10px; overflow:hidden; margin-bottom:15px; background:#000;">
@@ -241,10 +240,9 @@
                     <input type="file" id="up-bg" hidden onchange="updateSystemBG(this)">
                 </div>
             </div>
-
             <div class="card">
                 <h3>Configuração de Contatos e Vigilante</h3>
-                <label style="font-size: 12px; color: var(--primary);">E-mail do Administrador (Padrão):</label>
+                <label style="font-size: 12px; color: var(--primary);">E-mail do Administrador:</label>
                 <input type="text" id="admin-email-fixo" class="input-dark" placeholder="josealves37@hotmail.com">
                 <div style="margin-top: 15px; border-top: 1px solid #144466; padding-top: 10px;">
                     <label style="font-size: 12px; color: var(--primary);">Login Padrão Vigilante:</label>
@@ -279,17 +277,14 @@ function initSystem() {
         DB.set('sys_users', [{u: 'admin', p: 'admin', role: 'admin'}]);
         DB.set('sys_roteiro', [{id: 1, nome: 'PORTARIA', status: 'red', lat: -23.55, lon: -46.63}]);
     }
-    
     if(!localStorage.getItem('sys_admin_email')) localStorage.setItem('sys_admin_email', 'josealves37@hotmail.com');
     document.getElementById('admin-email-fixo').value = localStorage.getItem('sys_admin_email');
     document.getElementById('vigilante-user-fixo').value = localStorage.getItem('sys_vigilante_user') || '';
     document.getElementById('vigilante-pass-fixo').value = localStorage.getItem('sys_vigilante_pass') || '';
-
     const bg = localStorage.getItem('sys_bg'), logo = localStorage.getItem('sys_logo');
     if(bg) document.getElementById('login-screen').style.backgroundImage = `url(${bg})`;
     if(logo) applyLogo(logo);
     pdfLogoBase64 = localStorage.getItem('sys_pdf_logo');
-
     if(navigator.geolocation) {
         navigator.geolocation.watchPosition(p => {
             globalGPS.lat = p.coords.latitude; globalGPS.lon = p.coords.longitude;
@@ -297,8 +292,7 @@ function initSystem() {
             document.getElementById('tele-gps').innerText = globalGPS.str;
         });
     }
-    renderChecklist();
-    checkMural();
+    renderChecklist(); checkMural();
 }
 
 function salvarConfigsFixas() {
@@ -330,8 +324,8 @@ function enterSystem() {
 function handleForgotPassword() {
     const user = document.getElementById('login-user').value.trim();
     const adminEmail = localStorage.getItem('sys_admin_email');
-    const msg = encodeURIComponent(`Recuperação de Senha: Usuário [${user || 'Não informado'}]. E-mail de destino: ${adminEmail}`);
-    if(confirm(`Solicitar recuperação ao supervisor?`)) window.open(`https://wa.me/5500000000000?text=${msg}`, '_blank');
+    const msg = encodeURIComponent(`Recuperação de Senha: Usuário [${user || 'Não informado'}]. E-mail cadastrado: ${adminEmail}`);
+    if(confirm(`Deseja solicitar recuperação ao supervisor via WhatsApp?`)) window.open(`https://wa.me/5500000000000?text=${msg}`, '_blank');
 }
 
 function navigate(id) {
@@ -345,50 +339,31 @@ function navigate(id) {
     if(id === 'mural-page') renderMural();
 }
 
-/* CAMADA ATUALIZADA: ACESSO À CAMERA */
 async function toggleScanner() {
     const v = document.getElementById('scanner-view');
     const btn = document.getElementById('btn-scan-main');
-    
     if(scanner) { 
         try { await scanner.stop(); } catch(e){}
-        scanner = null; 
-        v.style.display = 'none'; 
+        scanner = null; v.style.display = 'none'; 
         btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER'; 
         return; 
     }
-    
     v.style.display = 'block';
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ACESSANDO...';
-    
-    scanner = new Instascan.Scanner({ 
-        video: document.getElementById('preview'), 
-        mirror: false,
-        backgroundScan: false 
-    });
-
+    scanner = new Instascan.Scanner({ video: document.getElementById('preview'), mirror: false, backgroundScan: false });
     scanner.addListener('scan', c => { validarPonto(c.toUpperCase()); toggleScanner(); });
-
     try {
-        // Passo 1: Solicitar permissão de forma ativa (Garante o diálogo do navegador)
         await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        
-        // Passo 2: Listar e iniciar
         const cams = await Instascan.Camera.getCameras();
         if(cams.length > 0) {
-            // Tenta pegar a traseira ("back") ou a última da lista (geralmente a principal)
             let backCam = cams.find(c => c.name.toLowerCase().includes('back')) || cams[cams.length - 1];
             await scanner.start(backCam);
             btn.innerHTML = '<i class="fas fa-times"></i> FECHAR SCANNER';
         } else {
-            alert("Nenhuma câmera encontrada.");
-            v.style.display = 'none';
+            alert("Câmera não encontrada."); v.style.display = 'none';
         }
     } catch(e) { 
-        alert("ERRO CAMERA: Verifique se permitiu o acesso ou se o site é HTTPS."); 
-        console.error(e);
-        v.style.display = 'none';
-        btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER';
+        alert("PERMISSÃO NEGADA."); v.style.display = 'none'; btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER';
     }
 }
 
@@ -396,7 +371,7 @@ function validarPonto(cod) {
     let r = DB.get('sys_roteiro');
     const idx = r.findIndex(p => p.nome === cod && p.status === 'red');
     if(idx !== -1) { r[idx].status = 'green'; DB.set('sys_roteiro', r); DB.log('RONDA OK', cod); renderChecklist(); }
-    else alert("Ponto incorreto!");
+    else alert("Ponto incorreto ou já realizado!");
 }
 
 function renderChecklist() { document.getElementById('checklist-status').innerHTML = DB.get('sys_roteiro').map(p => `<div class="ronda-item ${p.status==='green'?'concluido':''}"><span>${p.nome}</span><div class="status-light"></div></div>`).join(''); }
@@ -420,8 +395,7 @@ function addPonto() {
     if(n){
         let r = DB.get('sys_roteiro');
         r.push({ id: Date.now(), nome: n, status: 'red', lat: globalGPS.lat, lon: globalGPS.lon });
-        DB.set('sys_roteiro', r);
-        renderPontosAdmin(); renderChecklist();
+        DB.set('sys_roteiro', r); renderPontosAdmin(); renderChecklist();
         document.getElementById('novo-ponto-nome').value = '';
     }
 }
@@ -447,13 +421,13 @@ function imprimirQR(id, nome) {
 
 function delPonto(i) { let r=DB.get('sys_roteiro'); r.splice(i,1); DB.set('sys_roteiro', r); renderPontosAdmin(); renderChecklist(); }
 function togglePassView(id, icon) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; icon.classList.toggle('fa-eye-slash'); }
-function triggerPanic() { if(confirm("PÂNICO?")) { DB.log('PÂNICO SOS', 'EMERGÊNCIA'); alert("ENVIADO!"); } }
+function triggerPanic() { if(confirm("ACIONAR PÂNICO?")) { DB.log('PÂNICO SOS', 'EMERGÊNCIA ATIVADA'); alert("ALERTA ENVIADO!"); } }
 function updateMasterLog() { document.getElementById('lista-master').innerHTML = DB.get('sys_master_logs').map(l => `<tr><td>${l.hora}</td><td>${l.u}</td><td>${l.tipo}</td><td>${l.info}</td></tr>`).join(''); }
 function applyLogo(src) { const img = document.getElementById('dynamic-logo'); img.src = src; img.style.display = 'block'; document.getElementById('login-system-name').style.display='none'; document.getElementById('default-icon').style.display='none'; }
 function updateSystemLogo(i) { const fr = new FileReader(); fr.onload = e => { localStorage.setItem('sys_logo', e.target.result); applyLogo(e.target.result); }; fr.readAsDataURL(i.files[0]); }
 function updateSystemBG(i) { const fr = new FileReader(); fr.onload = e => { localStorage.setItem('sys_bg', e.target.result); document.getElementById('login-screen').style.backgroundImage = `url(${e.target.result})`; }; fr.readAsDataURL(i.files[0]); }
 function previewPhoto(i) { const fr = new FileReader(); fr.onload = e => { currentPhoto = e.target.result; document.getElementById('photo-preview').src = e.target.result; document.getElementById('photo-preview').style.display = 'block'; }; fr.readAsDataURL(i.files[0]); }
-function salvarOcorrencia() { const d = document.getElementById('oc-desc').value; if(d){ DB.log('OCORRÊNCIA', d, currentPhoto); alert("Relato enviado!"); navigate('ronda-page'); } }
+function salvarOcorrencia() { const d = document.getElementById('oc-desc').value; if(d){ DB.log('OCORRÊNCIA', d, currentPhoto); alert("Relato enviado com sucesso!"); navigate('ronda-page'); } }
 
 function addUser() { 
     const u = document.getElementById('nu').value, p = document.getElementById('np').value, r = document.getElementById('n-role').value;
@@ -467,7 +441,6 @@ function renderUserList() {
 
 function delUser(i) { let us = DB.get('sys_users'); us.splice(i,1); DB.set('sys_users', us); renderUserList(); }
 
-/* CAMADAS ADICIONAIS: MURAL, PDF E BACKUP */
 function checkMural() {
     const m = DB.get('sys_mural');
     if(m.length > 0) {
@@ -476,65 +449,43 @@ function checkMural() {
         document.getElementById('mural-nav-badge').style.display = 'block';
     }
 }
+
 function renderMural() {
     const mural = DB.get('sys_mural');
     document.getElementById('lista-mural').innerHTML = mural.map((m, i) => `
-        <div class="card">
-            <small style="color:var(--primary)">${m.data} - ${m.autor}</small>
-            <p style="margin-top:10px">${m.txt}</p>
-            ${currentUser.role==='admin' ? `<button onclick="delMural(${i})" style="background:none; border:none; color:var(--danger); margin-top:10px; cursor:pointer">Excluir</button>` : ''}
-        </div>`).join('');
+        <div class="card"><small style="color:var(--primary)">${m.data} - ${m.autor}</small><p style="margin-top:10px">${m.txt}</p>
+        ${currentUser.role==='admin' ? `<button onclick="delMural(${i})" style="background:none; border:none; color:var(--danger); margin-top:10px; cursor:pointer">Excluir</button>` : ''}</div>`).join('');
 }
+
 function salvarNoMural() {
-    const txt = document.getElementById('mural-txt').value;
-    if(!txt) return;
-    let mural = DB.get('sys_mural');
-    mural.unshift({ txt, autor: currentUser.u, data: new Date().toLocaleString() });
-    DB.set('sys_mural', mural);
-    document.getElementById('mural-txt').value = '';
-    renderMural(); checkMural();
+    const txt = document.getElementById('mural-txt').value; if(!txt) return;
+    let mural = DB.get('sys_mural'); mural.unshift({ txt, autor: currentUser.u, data: new Date().toLocaleString() });
+    DB.set('sys_mural', mural); document.getElementById('mural-txt').value = ''; renderMural(); checkMural();
 }
+
 function delMural(i) { let m = DB.get('sys_mural'); m.splice(i,1); DB.set('sys_mural', m); renderMural(); checkMural(); }
 
 function uploadLogoPDF(i) {
-    const fr = new FileReader();
-    fr.onload = e => { pdfLogoBase64 = e.target.result; localStorage.setItem('sys_pdf_logo', e.target.result); alert("Logo do PDF salva!"); };
-    fr.readAsDataURL(i.files[0]);
-}
-
-function exportarPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const emp = document.getElementById('pdf-empresa').value || "SISTEMA ELITE PRO";
-    if(pdfLogoBase64) doc.addImage(pdfLogoBase64, 'PNG', 10, 10, 30, 30);
-    doc.setFontSize(18); doc.text(emp, 50, 20);
-    doc.setFontSize(10); doc.text(`Relatório de Auditoria - Gerado em: ${new Date().toLocaleString()}`, 50, 28);
-    const logs = DB.get('sys_master_logs');
-    const data = logs.map(l => [l.hora, l.u, l.tipo, l.info, l.gps]);
-    doc.autoTable({ head: [['HORA', 'AGENTE', 'EVENTO', 'INFO', 'GPS']], body: data, startY: 45 });
-    doc.save(`Relatorio_${emp}.pdf`);
+    const fr = new FileReader(); fr.onload = e => { pdfLogoBase64 = e.target.result; localStorage.setItem('sys_pdf_logo', e.target.result); alert("Logo salva!"); }; fr.readAsDataURL(i.files[0]);
 }
 
 function downloadBackup() {
-    const data = JSON.stringify(localStorage);
-    const blob = new Blob([data], {type: 'application/json'});
+    const data = { users: DB.get('sys_users'), roteiro: DB.get('sys_roteiro'), logs: DB.get('sys_master_logs'), mural: DB.get('sys_mural') };
+    const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `backup_elitepro_${new Date().toLocaleDateString().replace(/\//g,'-')}.json`;
-    a.click();
+    const a = document.createElement('a'); a.href = url; a.download = `backup_security.json`; a.click();
 }
 
-function importBackup(i) {
-    const fr = new FileReader();
-    fr.onload = e => {
-        try {
-            const data = JSON.parse(e.target.result);
-            Object.keys(data).forEach(k => localStorage.setItem(k, data[k]));
-            alert("Restauração concluída! O sistema irá reiniciar.");
-            location.reload();
-        } catch(err) { alert("Arquivo de backup inválido."); }
-    };
-    fr.readAsDataURL(i.files[0]);
+function exportarPDF() {
+    const { jsPDF } = window.jspdf; 
+    const doc = new jsPDF();
+    const emp = document.getElementById('pdf-empresa').value || 'SECURITY';
+    if(pdfLogoBase64) doc.addImage(pdfLogoBase64, 'PNG', 10, 10, 40, 25);
+    doc.setFontSize(18); doc.text("RELATÓRIO DE AUDITORIA", 60, 20);
+    const logs = DB.get('sys_master_logs');
+    const tableData = logs.map(l => [l.data + ' ' + l.hora, l.u, l.tipo, l.info]);
+    doc.autoTable({ startY: 45, head: [['Data/Hora', 'Agente', 'Evento', 'Descrição']], body: tableData });
+    doc.save(`Relatorio.pdf`);
 }
 </script>
 </body>
