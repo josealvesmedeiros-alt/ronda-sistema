@@ -145,7 +145,7 @@
             <div class="card">
                 <h3>Checklist de Ronda</h3>
                 <div id="scanner-view" style="display:none; border: 2px solid var(--primary); border-radius:10px; overflow:hidden; margin-bottom:15px; background:#000;">
-                    <video id="preview" playsinline style="width:100%; min-height: 250px; object-fit: cover;"></video>
+                    <video id="preview" playsinline autoplay muted style="width:100%; min-height: 250px; object-fit: cover;"></video>
                 </div>
                 <button class="btn" id="btn-scan-main" onclick="toggleScanner()"><i class="fas fa-qrcode"></i> ABRIR SCANNER</button>
                 <div id="checklist-status" style="margin-top:20px;"></div>
@@ -345,45 +345,48 @@ function navigate(id) {
     if(id === 'mural-page') renderMural();
 }
 
-// CORREÇÃO SCANNER PARA GARANTIR ABERTURA DA CÂMERA
+/* CAMADA ATUALIZADA: ACESSO À CAMERA */
 async function toggleScanner() {
     const v = document.getElementById('scanner-view');
     const btn = document.getElementById('btn-scan-main');
     
     if(scanner) { 
-        await scanner.stop(); 
+        try { await scanner.stop(); } catch(e){}
         scanner = null; 
         v.style.display = 'none'; 
         btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER'; 
         return; 
     }
+    
+    v.style.display = 'block';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ACESSANDO...';
+    
+    scanner = new Instascan.Scanner({ 
+        video: document.getElementById('preview'), 
+        mirror: false,
+        backgroundScan: false 
+    });
 
-    // Tentar solicitar permissão explicitamente antes de iniciar o Instascan
+    scanner.addListener('scan', c => { validarPonto(c.toUpperCase()); toggleScanner(); });
+
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        stream.getTracks().forEach(track => track.stop()); // Fecha o teste de permissão
+        // Passo 1: Solicitar permissão de forma ativa (Garante o diálogo do navegador)
+        await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         
-        v.style.display = 'block';
-        btn.innerHTML = '<i class="fas fa-times"></i> FECHAR';
-        
-        scanner = new Instascan.Scanner({ video: document.getElementById('preview'), mirror: false, backgroundScan: false });
-        
-        scanner.addListener('scan', c => { 
-            validarPonto(c.toUpperCase()); 
-            toggleScanner(); 
-        });
-
+        // Passo 2: Listar e iniciar
         const cams = await Instascan.Camera.getCameras();
         if(cams.length > 0) {
-            // Prioriza a câmera traseira ("back")
-            let backCam = cams.find(c => c.name.toLowerCase().includes('back')) || cams[0];
+            // Tenta pegar a traseira ("back") ou a última da lista (geralmente a principal)
+            let backCam = cams.find(c => c.name.toLowerCase().includes('back')) || cams[cams.length - 1];
             await scanner.start(backCam);
+            btn.innerHTML = '<i class="fas fa-times"></i> FECHAR SCANNER';
         } else {
             alert("Nenhuma câmera encontrada.");
             v.style.display = 'none';
         }
     } catch(e) { 
-        alert("Erro ao acessar câmera: " + e.message + "\nVerifique se o site possui HTTPS e permissões de câmera.");
+        alert("ERRO CAMERA: Verifique se permitiu o acesso ou se o site é HTTPS."); 
+        console.error(e);
         v.style.display = 'none';
         btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER';
     }
@@ -464,11 +467,75 @@ function renderUserList() {
 
 function delUser(i) { let us = DB.get('sys_users'); us.splice(i,1); DB.set('sys_users', us); renderUserList(); }
 
-// Mural Placeholder functions
-function checkMural() {}
-function renderMural() {}
-function salvarNoMural() {}
+/* CAMADAS ADICIONAIS: MURAL, PDF E BACKUP */
+function checkMural() {
+    const m = DB.get('sys_mural');
+    if(m.length > 0) {
+        document.getElementById('mural-alert-ronda').style.display = 'flex';
+        document.getElementById('mural-msg-preview').innerText = m[0].txt.substring(0, 50) + "...";
+        document.getElementById('mural-nav-badge').style.display = 'block';
+    }
+}
+function renderMural() {
+    const mural = DB.get('sys_mural');
+    document.getElementById('lista-mural').innerHTML = mural.map((m, i) => `
+        <div class="card">
+            <small style="color:var(--primary)">${m.data} - ${m.autor}</small>
+            <p style="margin-top:10px">${m.txt}</p>
+            ${currentUser.role==='admin' ? `<button onclick="delMural(${i})" style="background:none; border:none; color:var(--danger); margin-top:10px; cursor:pointer">Excluir</button>` : ''}
+        </div>`).join('');
+}
+function salvarNoMural() {
+    const txt = document.getElementById('mural-txt').value;
+    if(!txt) return;
+    let mural = DB.get('sys_mural');
+    mural.unshift({ txt, autor: currentUser.u, data: new Date().toLocaleString() });
+    DB.set('sys_mural', mural);
+    document.getElementById('mural-txt').value = '';
+    renderMural(); checkMural();
+}
+function delMural(i) { let m = DB.get('sys_mural'); m.splice(i,1); DB.set('sys_mural', m); renderMural(); checkMural(); }
 
+function uploadLogoPDF(i) {
+    const fr = new FileReader();
+    fr.onload = e => { pdfLogoBase64 = e.target.result; localStorage.setItem('sys_pdf_logo', e.target.result); alert("Logo do PDF salva!"); };
+    fr.readAsDataURL(i.files[0]);
+}
+
+function exportarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const emp = document.getElementById('pdf-empresa').value || "SISTEMA ELITE PRO";
+    if(pdfLogoBase64) doc.addImage(pdfLogoBase64, 'PNG', 10, 10, 30, 30);
+    doc.setFontSize(18); doc.text(emp, 50, 20);
+    doc.setFontSize(10); doc.text(`Relatório de Auditoria - Gerado em: ${new Date().toLocaleString()}`, 50, 28);
+    const logs = DB.get('sys_master_logs');
+    const data = logs.map(l => [l.hora, l.u, l.tipo, l.info, l.gps]);
+    doc.autoTable({ head: [['HORA', 'AGENTE', 'EVENTO', 'INFO', 'GPS']], body: data, startY: 45 });
+    doc.save(`Relatorio_${emp}.pdf`);
+}
+
+function downloadBackup() {
+    const data = JSON.stringify(localStorage);
+    const blob = new Blob([data], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `backup_elitepro_${new Date().toLocaleDateString().replace(/\//g,'-')}.json`;
+    a.click();
+}
+
+function importBackup(i) {
+    const fr = new FileReader();
+    fr.onload = e => {
+        try {
+            const data = JSON.parse(e.target.result);
+            Object.keys(data).forEach(k => localStorage.setItem(k, data[k]));
+            alert("Restauração concluída! O sistema irá reiniciar.");
+            location.reload();
+        } catch(err) { alert("Arquivo de backup inválido."); }
+    };
+    fr.readAsDataURL(i.files[0]);
+}
 </script>
 </body>
 </html>
