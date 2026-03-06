@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="pt-br"><head>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="tab-title">ELITE PRO V20.0 - High Tech Security</title>
@@ -53,14 +55,10 @@
         .mural-badge { position: absolute; top: 10px; right: 10px; width: 12px; height: 12px; background: var(--danger); border-radius: 50%; border: 2px solid var(--card); display: none; }
         #mural-alert-ronda { background: var(--warning); color: #000; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-weight: bold; display: none; align-items: center; gap: 10px; animation: pulse 1.5s infinite; cursor: default; }
 
-        /* Estilo Linha de Ronda (Baseado em felix.pdf.jpg) */
-        .ronda-flow-container { display: flex; flex-wrap: wrap; gap: 15px; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 10px; justify-content: center; }
-        .ronda-node { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 80px; }
-        .node-circle { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; transition: 0.5s; border: 2px solid rgba(255,255,255,0.1); }
-        .node-circle.pendente { background: #555; }
-        .node-circle.concluido { background: var(--success); box-shadow: 0 0 15px var(--success); }
-        .node-circle.pulou { background: var(--danger); box-shadow: 0 0 15px var(--danger); }
-        .node-label { font-size: 9px; text-align: center; text-transform: uppercase; min-height: 24px; }
+        .ronda-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 10px; margin-bottom: 10px; border-left: 5px solid var(--danger); }
+        .ronda-item.concluido { border-left-color: var(--success); }
+        .status-light { width: 12px; height: 12px; border-radius: 50%; background: var(--danger); }
+        .concluido .status-light { background: var(--success); }
 
         .page { display: none; }
         .page.active { display: block; animation: fadeIn 0.3s ease; }
@@ -74,8 +72,6 @@
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .fa-spin-custom { animation: spin 2s linear infinite; }
         
         .telemetry-header { font-size: 0.7rem; color: #888; display: flex; gap: 12px; }
         .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
@@ -92,7 +88,11 @@
         }
         
         .admin-only { display: none; }
-    </style></head><body onload="initSystem()"><div id="login-screen">
+    </style>
+</head>
+<body onload="initSystem()">
+
+<div id="login-screen">
     <div class="login-box">
         <i id="default-icon" class="fas fa-shield-halved" style="font-size: 3.5rem; color: var(--primary); margin-bottom: 20px;"></i>
         <img id="dynamic-logo" src="" alt="Logo">
@@ -104,7 +104,10 @@
         </div>
         <button class="btn" onclick="handleLogin()">ENTRAR NO SISTEMA</button>
         <a href="javascript:void(0)" class="forgot-link" onclick="handleForgotPassword()">Esqueceu a senha?</a>
-    </div></div><nav id="side-nav">
+    </div>
+</div>
+
+<nav id="side-nav">
     <h2 id="nav-title">CONTROLE</h2>
     <button class="btn-nav" id="btn-ronda-page" onclick="navigate('ronda-page')"><i class="fas fa-walking"></i> <span>RONDA</span></button>
     <button class="btn-nav" id="btn-ocorrencias-page" onclick="navigate('ocorrencias-page')"><i class="fas fa-exclamation-triangle"></i> <span>OCORRÊNCIAS</span></button>
@@ -119,7 +122,10 @@
         <button class="btn-nav admin-only" id="btn-gestao-users" onclick="navigate('gestao-users')"><i class="fas fa-users-cog"></i> <span>EQUIPE</span></button>
         <button class="btn-nav admin-only" id="btn-config-branding" onclick="navigate('config-branding')"><i class="fas fa-paint-brush"></i> <span>VISUAL</span></button>
     </div>
-    <button class="btn-nav" style="border:none; color:#666; margin-top:auto" onclick="location.reload()"><i class="fas fa-sign-out-alt"></i> <span>SAIR</span></button></nav><main id="main-content">
+    <button class="btn-nav" style="border:none; color:#666; margin-top:auto" onclick="location.reload()"><i class="fas fa-sign-out-alt"></i> <span>SAIR</span></button>
+</nav>
+
+<main id="main-content">
     <header>
         <div>
             <h3 id="page-title">MÓDULO DE RONDA</h3>
@@ -136,17 +142,12 @@
         <section id="ronda-page" class="page active">
             <div id="mural-alert-ronda"><i class="fas fa-bullhorn"></i> <span id="mural-msg-preview"></span></div>
             <div class="card">
-                <h3 style="margin-bottom: 15px;">Checklist de Ronda</h3>
-                <div id="checklist-status" class="ronda-flow-container"></div>
-                
-                <div id="scanner-view" style="display:none; border: 2px solid var(--primary); border-radius:10px; overflow:hidden; margin: 15px 0; background:#000;">
+                <h3>Checklist de Ronda</h3>
+                <div id="scanner-view" style="display:none; border: 2px solid var(--primary); border-radius:10px; overflow:hidden; margin-bottom:15px; background:#000;">
                     <video id="preview" playsinline autoplay muted style="width:100%; min-height: 250px; object-fit: cover;"></video>
                 </div>
-                
-                <button class="btn" id="btn-scan-main" onclick="toggleScanner()" style="height: 60px;">
-                    <i class="fas fa-qrcode" style="margin-right: 10px;"></i> <span>ABRIR SCANNER</span>
-                </button>
-                
+                <button class="btn" id="btn-scan-main" onclick="toggleScanner()"><i class="fas fa-qrcode"></i> ABRIR SCANNER</button>
+                <div id="checklist-status" style="margin-top:20px;"></div>
                 <button class="btn btn-panic" onclick="triggerPanic()"><i class="fas fa-radiation"></i> <span>ACIONAR PÂNICO</span></button>
             </div>
         </section>
@@ -180,7 +181,7 @@
                 <div id="chart-container"><canvas id="geoChart"></canvas></div>
                 <h3>Configurar PDF de Auditoria</h3>
                 <div style="margin-bottom: 15px; padding: 10px; border: 1px dashed var(--primary); border-radius: 8px;">
-                    <label style="display: block; font-size: 0.8rem; margin-bottom: 8px; color: var(--primary);">Logo do Relatório (dddddddddd.png):</label>
+                    <label style="display: block; font-size: 0.8rem; margin-bottom: 8px; color: var(--primary);">Logo do Relatório:</label>
                     <input type="file" id="pdf-logo-input" accept="image/*" onchange="uploadLogoPDF(this)" style="font-size: 0.7rem;">
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
@@ -194,6 +195,10 @@
                 </button>
             </div>
             <div class="card" style="overflow-x:auto">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <h3>Logs do Sistema</h3>
+                    <button onclick="limparLogs()" style="background:var(--danger); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;"><i class="fas fa-trash"></i> LIMPAR</button>
+                </div>
                 <table style="width:100%; border-collapse:collapse; font-size:0.7rem;">
                     <thead><tr style="color:var(--primary); background:rgba(0,0,0,0.4);"><th>HORA</th><th>AGENTE</th><th>EVENTO</th><th>INFO</th><th>ANEXO</th></tr></thead>
                     <tbody id="lista-master"></tbody>
@@ -252,23 +257,36 @@
                 <button class="btn" style="margin-top:15px; background: var(--success); color: white;" onclick="salvarConfigsFixas()">SALVAR CONFIGURAÇÕES</button>
             </div>
         </section>
-    </div></main><script>const MASTER_USER = "MESTRE";const MASTER_PASS = "SUPERVISOR2026";const DB = {
+    </div>
+</main>
+
+<script>
+const MASTER_USER = "MESTRE";
+const MASTER_PASS = "SUPERVISOR2026";
+
+const DB = {
     get: (k) => JSON.parse(localStorage.getItem(k) || '[]'),
-    set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+    set: (k, v) => { localStorage.setItem(k, JSON.stringify(v)); sync(); },
     log: (tipo, info, foto = null) => {
         let logs = DB.get('sys_master_logs');
         logs.unshift({ u: currentUser.u, tipo, info, hora: new Date().toLocaleTimeString(), data: new Date().toLocaleDateString(), gps: globalGPS.str, lat: globalGPS.lat, lon: globalGPS.lon, foto });
         DB.set('sys_master_logs', logs.slice(0, 500));
     }
-};let scanner = null, currentUser = null, map = null, geoChart = null, globalGPS = {lat:0, lon:0, str:"0,0"}, currentPhoto = null, pdfLogoBase64 = null;function initSystem() {
+};
+
+// Camada de Persistência Automática
+function sync() {
+    console.log("Sincronizando estado com banco de dados...");
+    // A simulação de persistência ocorre através do localStorage atualizado constantemente.
+    // Em um cenário real, aqui seria feita a chamada API (fetch/axios) para salvar.
+}
+
+let scanner = null, currentUser = null, map = null, geoChart = null, globalGPS = {lat:0, lon:0, str:"0,0"}, currentPhoto = null, pdfLogoBase64 = null;
+
+function initSystem() {
     if(DB.get('sys_users').length === 0) {
         DB.set('sys_users', [{u: 'admin', p: 'admin', role: 'admin'}]);
-        DB.set('sys_roteiro', [
-            {id: 1, nome: 'PORTARIA 01', status: 'pendente'},
-            {id: 2, nome: 'FUNDO INFORMATICA', status: 'pendente'},
-            {id: 3, nome: 'FUNDO FABRICA', status: 'pendente'},
-            {id: 4, nome: 'SILO FABRICA', status: 'pulou'}
-        ]);
+        DB.set('sys_roteiro', [{id: 1, nome: 'PORTARIA', status: 'red', lat: -23.55, lon: -46.63}]);
     }
     if(!localStorage.getItem('sys_admin_email')) localStorage.setItem('sys_admin_email', 'josealves37@hotmail.com');
     document.getElementById('admin-email-fixo').value = localStorage.getItem('sys_admin_email');
@@ -286,12 +304,17 @@
         });
     }
     renderChecklist(); checkMural();
-}function salvarConfigsFixas() {
+}
+
+function salvarConfigsFixas() {
     localStorage.setItem('sys_admin_email', document.getElementById('admin-email-fixo').value);
     localStorage.setItem('sys_vigilante_user', document.getElementById('vigilante-user-fixo').value);
     localStorage.setItem('sys_vigilante_pass', document.getElementById('vigilante-pass-fixo').value);
+    sync();
     alert("Configurações salvas!");
-}function handleLogin() {
+}
+
+function handleLogin() {
     const u = document.getElementById('login-user').value.trim();
     const p = document.getElementById('login-pass').value.trim();
     if(u.toUpperCase() === MASTER_USER && p === MASTER_PASS) { currentUser = { u: 'MESTRE', role: 'admin' }; enterSystem(); return; }
@@ -299,19 +322,25 @@
     if(fixoUser && u === fixoUser && p === fixoPass) { currentUser = { u: fixoUser, role: 'user' }; enterSystem(); return; }
     const user = DB.get('sys_users').find(x => x.u.toLowerCase() === u.toLowerCase() && x.p === p);
     if(user) { currentUser = user; enterSystem(); } else alert("Acesso Negado.");
-}function enterSystem() {
+}
+
+function enterSystem() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('side-nav').style.display = 'flex';
     document.getElementById('main-content').style.display = 'flex';
     document.getElementById('user-tag').innerText = `USER: ${currentUser.u.toUpperCase()}`;
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = (currentUser.role === 'admin' ? 'block' : 'none'));
     navigate('ronda-page');
-}function handleForgotPassword() {
+}
+
+function handleForgotPassword() {
     const user = document.getElementById('login-user').value.trim();
     const adminEmail = localStorage.getItem('sys_admin_email');
     const msg = encodeURIComponent(`Recuperação de Senha: Usuário [${user || 'Não informado'}]. E-mail cadastrado: ${adminEmail}`);
     if(confirm(`Deseja solicitar recuperação ao supervisor via WhatsApp?`)) window.open(`https://wa.me/5500000000000?text=${msg}`, '_blank');
-}function navigate(id) {
+}
+
+function navigate(id) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active-btn'));
@@ -320,28 +349,25 @@
     if(id === 'gestao-pontos') renderPontosAdmin();
     if(id === 'gestao-users') renderUserList();
     if(id === 'mural-page') renderMural();
-}async function toggleScanner() {
+}
+
+async function toggleScanner() {
     const v = document.getElementById('scanner-view');
     const btn = document.getElementById('btn-scan-main');
-    const btnText = btn.querySelector('span');
-    const btnIcon = btn.querySelector('i');
     
     if(scanner) { 
         try { await scanner.stop(); } catch(e){} 
         scanner = null; 
         v.style.display = 'none'; 
-        btnText.innerText = 'ABRIR SCANNER'; 
-        btnIcon.className = 'fas fa-qrcode';
+        btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER'; 
         return; 
     }
     
-    // Efeito Visual da Imagem "Sem título.png"
-    btnText.innerText = 'ACESSANDO...';
-    btnIcon.className = 'fas fa-circle-notch fa-spin-custom';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ACESSANDO...';
     
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach(track => track.stop()); 
         
         v.style.display = 'block';
         scanner = new Instascan.Scanner({ video: document.getElementById('preview'), mirror: false, backgroundScan: false });
@@ -355,66 +381,55 @@
         if(cams.length > 0) {
             let backCam = cams.find(c => c.name.toLowerCase().includes('back')) || cams[cams.length - 1];
             await scanner.start(backCam);
-            btnText.innerText = 'FECHAR SCANNER';
-            btnIcon.className = 'fas fa-times';
+            btn.innerHTML = '<i class="fas fa-times"></i> FECHAR SCANNER';
         } else { 
             alert("Câmera não encontrada."); 
             v.style.display = 'none'; 
-            btnText.innerText = 'ABRIR SCANNER'; 
+            btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER'; 
         }
     } catch(e) { 
-        alert("PERMISSÃO DA CÂMERA NEGADA."); 
+        alert("PERMISSÃO DA CÂMERA NEGADA OU NÃO SUPORTADA."); 
         v.style.display = 'none'; 
-        btnText.innerText = 'ABRIR SCANNER'; 
-        btnIcon.className = 'fas fa-qrcode';
+        btn.innerHTML = '<i class="fas fa-qrcode"></i> ABRIR SCANNER'; 
     }
-}function validarPonto(cod) {
-    let r = DB.get('sys_roteiro');
-    const idx = r.findIndex(p => p.nome === cod && p.status !== 'concluido');
-    if(idx !== -1) { 
-        r[idx].status = 'concluido'; 
-        DB.set('sys_roteiro', r); 
-        DB.log('RONDA OK', cod); 
-        renderChecklist(); 
-    } else alert("Ponto incorreto ou já realizado!");
 }
 
-// Renderização baseada no felix.pdf.jpg
-function renderChecklist() { 
-    const container = document.getElementById('checklist-status');
-    const roteiro = DB.get('sys_roteiro');
-    container.innerHTML = roteiro.map((p, idx) => `
-        <div class="ronda-node">
-            <div class="node-circle ${p.status}">
-                ${p.status === 'concluido' ? '<i class="fas fa-check"></i>' : (p.status === 'pulou' ? 'PULOU' : idx + 1)}
-            </div>
-            <div class="node-label">${p.nome}</div>
-            ${idx < roteiro.length - 1 ? '<i class="fas fa-arrow-right" style="font-size:10px; opacity:0.3"></i>' : ''}
-        </div>
-    `).join(''); 
+function validarPonto(cod) {
+    let r = DB.get('sys_roteiro');
+    const idx = r.findIndex(p => p.nome === cod && p.status === 'red');
+    if(idx !== -1) { r[idx].status = 'green'; DB.set('sys_roteiro', r); DB.log('RONDA OK', cod); renderChecklist(); }
+    else alert("Ponto incorreto ou já realizado!");
 }
+
+function renderChecklist() { document.getElementById('checklist-status').innerHTML = DB.get('sys_roteiro').map(p => `<div class="ronda-item ${p.status==='green'?'concluido':''}"><span>${p.nome}</span><div class="status-light"></div></div>`).join(''); }
 
 function initGeoChart() {
     const ctx = document.getElementById('geoChart').getContext('2d');
     const logs = DB.get('sys_master_logs').filter(l => l.lat);
     if(geoChart) geoChart.destroy();
     geoChart = new Chart(ctx, { type: 'scatter', data: { datasets: [{ label: 'GPS', data: logs.map(l => ({ x: l.lon, y: l.lat })), backgroundColor: '#00f2fe' }] }, options: { maintainAspectRatio: false } });
-}function initMap() { 
+}
+
+function initMap() { 
     if(map) map.remove(); 
     map = L.map('map').setView([globalGPS.lat, globalGPS.lon], 15); 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); 
     DB.get('sys_roteiro').forEach(p => { if(p.lat) L.marker([p.lat, p.lon]).addTo(map).bindPopup(p.nome); });
-}function addPonto() {
+}
+
+function addPonto() {
     const n = document.getElementById('novo-ponto-nome').value.toUpperCase().trim();
     if(n){
         let r = DB.get('sys_roteiro');
-        r.push({ id: Date.now(), nome: n, status: 'pendente', lat: globalGPS.lat, lon: globalGPS.lon });
+        r.push({ id: Date.now(), nome: n, status: 'red', lat: globalGPS.lat, lon: globalGPS.lon });
         DB.set('sys_roteiro', r); 
         renderPontosAdmin(); 
         renderChecklist();
         document.getElementById('novo-ponto-nome').value = '';
     }
-}function renderPontosAdmin() {
+}
+
+function renderPontosAdmin() {
     const container = document.getElementById('lista-pontos-config');
     const pontos = DB.get('sys_roteiro');
     container.innerHTML = pontos.map((p, i) => `
@@ -431,7 +446,9 @@ function initGeoChart() {
             new QRCode(el, { text: p.nome, width: 120, height: 120 }); 
         });
     }, 100);
-}function imprimirQR(id, nome) {
+}
+
+function imprimirQR(id, nome) {
     const container = document.getElementById(id);
     const canvas = container.querySelector('canvas');
     const imgData = canvas ? canvas.toDataURL("image/png") : container.querySelector('img').src;
@@ -439,7 +456,13 @@ function initGeoChart() {
     win.document.write(`<html><head><title>Imprimir QR</title></head><body style="text-align:center; font-family: sans-serif; padding: 20px;"><h1>${nome}</h1><img src="${imgData}" width="300" style="margin-top:20px;"><p style="margin-top:20px; font-size: 1.5rem;">ELITE PRO - PONTO DE RONDA</p></body></html>`);
     win.document.close();
     win.print();
-}function delPonto(i) { let r=DB.get('sys_roteiro'); r.splice(i,1); DB.set('sys_roteiro', r); renderPontosAdmin(); renderChecklist(); }function togglePassView(id, icon) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; icon.classList.toggle('fa-eye-slash'); }function triggerPanic() { if(confirm("ACIONAR PÂNICO?")) { DB.log('PÂNICO SOS', 'EMERGÊNCIA ATIVADA'); alert("ALERTA ENVIADO!"); } }function updateMasterLog() { 
+}
+
+function delPonto(i) { let r=DB.get('sys_roteiro'); r.splice(i,1); DB.set('sys_roteiro', r); renderPontosAdmin(); renderChecklist(); }
+function togglePassView(id, icon) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; icon.classList.toggle('fa-eye-slash'); }
+function triggerPanic() { if(confirm("ACIONAR PÂNICO?")) { DB.log('PÂNICO SOS', 'EMERGÊNCIA ATIVADA'); alert("ALERTA ENVIADO!"); } }
+
+function updateMasterLog() { 
     document.getElementById('lista-master').innerHTML = DB.get('sys_master_logs').map(l => `
         <tr>
             <td>${l.hora}</td>
@@ -448,7 +471,15 @@ function initGeoChart() {
             <td>${l.info}</td>
             <td>${l.foto ? '<i class="fas fa-image" style="color:var(--primary)"></i>' : '-'}</td>
         </tr>`).join(''); 
-}function applyLogo(src) { const img = document.getElementById('dynamic-logo'); img.src = src; img.style.display = 'block'; document.getElementById('login-system-name').style.display='none'; document.getElementById('default-icon').style.display='none'; }function updateSystemLogo(i) { const fr = new FileReader(); fr.onload = e => { localStorage.setItem('sys_logo', e.target.result); applyLogo(e.target.result); }; fr.readAsDataURL(i.files[0]); }function updateSystemBG(i) { const fr = new FileReader(); fr.onload = e => { localStorage.setItem('sys_bg', e.target.result); document.getElementById('login-screen').style.backgroundImage = `url(${e.target.result})`; }; fr.readAsDataURL(i.files[0]); }function previewPhoto(i) { 
+}
+
+function limparLogs() { if(confirm("Limpar todos os logs?")) { DB.set('sys_master_logs', []); updateMasterLog(); } }
+
+function applyLogo(src) { const img = document.getElementById('dynamic-logo'); img.src = src; img.style.display = 'block'; document.getElementById('login-system-name').style.display='none'; document.getElementById('default-icon').style.display='none'; }
+function updateSystemLogo(i) { const fr = new FileReader(); fr.onload = e => { localStorage.setItem('sys_logo', e.target.result); applyLogo(e.target.result); sync(); }; fr.readAsDataURL(i.files[0]); }
+function updateSystemBG(i) { const fr = new FileReader(); fr.onload = e => { localStorage.setItem('sys_bg', e.target.result); document.getElementById('login-screen').style.backgroundImage = `url(${e.target.result})`; sync(); }; fr.readAsDataURL(i.files[0]); }
+
+function previewPhoto(i) { 
     const fr = new FileReader(); 
     fr.onload = e => { 
         currentPhoto = e.target.result; 
@@ -456,7 +487,9 @@ function initGeoChart() {
         document.getElementById('photo-preview').style.display = 'block'; 
     }; 
     fr.readAsDataURL(i.files[0]); 
-}function salvarOcorrencia() { 
+}
+
+function salvarOcorrencia() { 
     const d = document.getElementById('oc-desc').value; 
     if(d){ 
         DB.log('OCORRÊNCIA', d, currentPhoto); 
@@ -466,115 +499,78 @@ function initGeoChart() {
         currentPhoto = null;
         navigate('ronda-page'); 
     } 
-}function addUser() { 
+}
+
+function addUser() { 
     const u = document.getElementById('nu').value, p = document.getElementById('np').value, r = document.getElementById('n-role').value;
     if(u && p){ let us = DB.get('sys_users'); us.push({u, p, role: r}); DB.set('sys_users', us); renderUserList(); }
-}function renderUserList() { 
+}
+
+function renderUserList() { 
     const users = DB.get('sys_users');
     document.getElementById('lista-users-delete').innerHTML = users.map((u, i) => `<div class="card" style="display:flex; justify-content:space-between"><span>${u.u} (${u.role})</span><button onclick="delUser(${i})" style="color:var(--danger); background:none; border:none"><i class="fas fa-trash"></i></button></div>`).join('');
-}function delUser(i) { let us = DB.get('sys_users'); us.splice(i,1); DB.set('sys_users', us); renderUserList(); }function checkMural() {
+}
+
+function delUser(i) { let us = DB.get('sys_users'); us.splice(i,1); DB.set('sys_users', us); renderUserList(); }
+
+function checkMural() {
     const m = DB.get('sys_mural');
     if(m.length > 0) {
         document.getElementById('mural-alert-ronda').style.display = 'flex';
         document.getElementById('mural-msg-preview').innerText = m[0].txt.substring(0, 50) + "...";
         document.getElementById('mural-nav-badge').style.display = 'block';
     }
-}function renderMural() {
+}
+
+function renderMural() {
     const mural = DB.get('sys_mural');
-    document.getElementById('lista-mural').innerHTML = mural.map((m, i) => `
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #333; padding-bottom:10px; margin-bottom:10px;">
-                <strong>${m.u}</strong><small>${m.data}</small>
-            </div>
-            <p>${m.txt}</p>
-        </div>`).join('');
-}function salvarNoMural() {
+    document.getElementById('lista-mural').innerHTML = mural.map(m => `<div class="card">${m.txt} <div style="font-size:0.7rem; color:#666; margin-top:5px;">${m.data}</div></div>`).join('');
+}
+
+function salvarNoMural() {
     const txt = document.getElementById('mural-txt').value;
     if(txt) {
         let m = DB.get('sys_mural');
-        m.unshift({ u: currentUser.u, txt, data: new Date().toLocaleDateString() });
+        m.unshift({txt, data: new Date().toLocaleString()});
         DB.set('sys_mural', m);
         document.getElementById('mural-txt').value = '';
         renderMural();
-        checkMural();
     }
-}function uploadLogoPDF(input) {
-    const fr = new FileReader();
-    fr.onload = e => { pdfLogoBase64 = e.target.result; localStorage.setItem('sys_pdf_logo', e.target.result); };
-    fr.readAsDataURL(input.files[0]);
 }
 
-// Exportação PDF - Reflete dddddddddd.png
-async function exportarPDF() {
+function exportarPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const logs = DB.get('sys_master_logs');
-    const config = {
-        empresa: document.getElementById('pdf-empresa').value || "ELITE PRO SECURITY",
-        gestor: document.getElementById('pdf-gestor').value || "ADMINISTRADOR",
-        local: `${document.getElementById('pdf-cidade').value || 'Cidade'} - ${document.getElementById('pdf-estado').value || 'UF'}`
-    };
+    const e = document.getElementById('pdf-empresa').value || 'ELITE PRO';
+    doc.text(`Relatório de Auditoria - ${e}`, 10, 10);
+    const rows = DB.get('sys_master_logs').map(l => [l.hora, l.u, l.tipo, l.info]);
+    doc.autoTable({ head: [['Hora', 'Agente', 'Evento', 'Info']], body: rows });
+    doc.save('auditoria.pdf');
+}
 
-    // Moldura e Cabeçalho (Estilo dddddddddd.png)
-    doc.setDrawColor(0, 242, 254);
-    doc.rect(5, 5, 200, 287);
-    
-    if(pdfLogoBase64) doc.addImage(pdfLogoBase64, 'PNG', 85, 10, 40, 30);
-    
-    doc.setFontSize(22);
-    doc.setFont("helvetica", "bold");
-    doc.text("PORTÁRIA", 105, 50, { align: "center" }); // Reflete dddddddddd.png
-    
-    doc.setFontSize(10);
-    doc.text(`Empresa: ${config.empresa}`, 20, 65);
-    doc.text(`Gestor: ${config.gestor}`, 20, 70);
-    doc.text(`Local: ${config.local}`, 20, 75);
-    doc.text(`Data: ${new Date().toLocaleDateString()}`, 190, 65, { align: "right" });
-
-    doc.autoTable({
-        startY: 85,
-        head: [['DATA', 'HORA', 'AGENTE', 'EVENTO', 'DETALHES']],
-        body: logs.map(l => [l.data, l.hora, l.u, l.tipo, l.info]),
-        theme: 'grid',
-        headStyles: { fillColor: [0, 21, 41] }
-    });
-
-    doc.save(`Relatorio_ElitePro_${Date.now()}.pdf`);
-}function downloadBackup() {
-    const data = {
-        u: DB.get('sys_users'),
-        r: DB.get('sys_roteiro'),
-        l: DB.get('sys_master_logs'),
-        m: DB.get('sys_mural'),
-        config: {
-            email: localStorage.getItem('sys_admin_email'),
-            vu: localStorage.getItem('sys_vigilante_user'),
-            vp: localStorage.getItem('sys_vigilante_pass'),
-            logo: localStorage.getItem('sys_logo'),
-            bg: localStorage.getItem('sys_bg')
-        }
-    };
-    const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+function downloadBackup() {
+    const data = JSON.stringify(localStorage);
+    const blob = new Blob([data], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'backup_elite_pro.json'; a.click();
-}function importBackup(input) {
+    a.href = url; a.download = 'backup_elite.json'; a.click();
+}
+
+function importBackup(i) {
     const fr = new FileReader();
     fr.onload = e => {
-        const d = JSON.parse(e.target.result);
-        if(d.u) DB.set('sys_users', d.u);
-        if(d.r) DB.set('sys_roteiro', d.r);
-        if(d.l) DB.set('sys_master_logs', d.l);
-        if(d.m) DB.set('sys_mural', d.m);
-        if(d.config) {
-            localStorage.setItem('sys_admin_email', d.config.email);
-            localStorage.setItem('sys_vigilante_user', d.config.vu);
-            localStorage.setItem('sys_vigilante_pass', d.config.vp);
-            if(d.config.logo) localStorage.setItem('sys_logo', d.config.logo);
-            if(d.config.bg) localStorage.setItem('sys_bg', d.config.bg);
-        }
-        alert("Dados restaurados!");
-        location.reload();
+        const data = JSON.parse(e.target.result);
+        for(let key in data) localStorage.setItem(key, data[key]);
+        alert("Sistema restaurado com sucesso!"); location.reload();
     };
-    fr.readAsText(input.files[0]);
-}</script></body></html>
+    fr.readAsText(i.files[0]);
+}
+
+function uploadLogoPDF(i) {
+    const fr = new FileReader();
+    fr.onload = e => { pdfLogoBase64 = e.target.result; localStorage.setItem('sys_pdf_logo', pdfLogoBase64); sync(); };
+    fr.readAsDataURL(i.files[0]);
+}
+</script>
+</body>
+</html>
